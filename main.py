@@ -5,10 +5,11 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from firebase_admin import storage
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
+import os
 
 # Inisialisasi Firebase
-cred = credentials.Certificate(
-    "bot-unnes-telegram-firebase-adminsdk-7f07u-f3ea9de690.json")
+current_dir = os.path.dirname(os.path.abspath(_file_))
+json_path = os.path.join(current_dir, "bot-unnes-telegram-firebase-adminsdk-7f07u-f3ea9de690.json")
 firebase_admin.initialize_app(
     cred,
     {
