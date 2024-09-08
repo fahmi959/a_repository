@@ -9,30 +9,13 @@ import json
 from google.oauth2 import service_account
 
 
-# Debug: Cetak semua variabel lingkungan
-print("Environment Variables:", os.environ)
 
-# Ambil string JSON dari variabel lingkungan
-credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+# Load the JSON credentials from an environment variable
+google_credentials = json.loads(os.environ.get('GOOGLE_CREDENTIALS'))
 
-# Debug: Cetak nilai variabel GOOGLE_CREDENTIALS
-print("GOOGLE_CREDENTIALS:", credentials_json)
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate(google_credentials)
 
-# Periksa apakah variabel lingkungan ada dan tidak None
-if credentials_json is None:
-    raise ValueError("Environment variable GOOGLE_CREDENTIALS is not set or is empty.")
-
-# Parse JSON menjadi dictionary
-try:
-    service_account_info = json.loads(credentials_json)
-except json.JSONDecodeError as e:
-    raise ValueError(f"Invalid JSON format in GOOGLE_CREDENTIALS: {e}")
-
-# Buat objek Credentials dari dictionary
-try:
-    cred = service_account.Credentials.from_service_account_info(service_account_info)
-except ValueError as e:
-    raise ValueError(f"Error creating credentials from service account info: {e}")
     
 # Inisialisasi Firebase
 firebase_admin.initialize_app(
