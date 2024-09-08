@@ -9,10 +9,14 @@ import json
 from google.oauth2 import service_account
 
 
-
+# Debug: Cetak semua variabel lingkungan
+print("Environment Variables:", os.environ)
 
 # Ambil string JSON dari variabel lingkungan
 credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+
+# Debug: Cetak nilai variabel GOOGLE_CREDENTIALS
+print("GOOGLE_CREDENTIALS:", credentials_json)
 
 # Periksa apakah variabel lingkungan ada dan tidak None
 if credentials_json is None:
