@@ -7,10 +7,9 @@ from telegram.ext import CallbackQueryHandler
 import os
 
 # Inisialisasi Firebase
-current_dir = os.path.dirname(os.path.abspath(__file__))
-json_path = os.path.join(current_dir, "bot-unnes-telegram-firebase-adminsdk-7f07u-f3ea9de690.json")
+service_account_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+cred = service_account.Credentials.from_service_account_info(service_account_info)
 
-cred = credentials.Certificate(json_path)
 firebase_admin.initialize_app(
     cred,
     {
@@ -24,7 +23,7 @@ db = firestore.client()
 bucket = storage.bucket()
 
 # Token dari BotFather
-TOKEN = "7483413347:AAGcUbEL7TsZ_9H2UUEBlx2R6qwM5Vly9tg"
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
 def start(update: Update, context: CallbackContext):
