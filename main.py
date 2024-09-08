@@ -6,14 +6,31 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
 import os
 import json
+from google.oauth2 import service_account
 
 
 
 
+# Ambil string JSON dari variabel lingkungan
+credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+
+# Periksa apakah variabel lingkungan ada dan tidak None
+if credentials_json is None:
+    raise ValueError("Environment variable GOOGLE_CREDENTIALS is not set or is empty.")
+
+# Parse JSON menjadi dictionary
+try:
+    service_account_info = json.loads(credentials_json)
+except json.JSONDecodeError as e:
+    raise ValueError(f"Invalid JSON format in GOOGLE_CREDENTIALS: {e}")
+
+# Buat objek Credentials dari dictionary
+try:
+    cred = service_account.Credentials.from_service_account_info(service_account_info)
+except ValueError as e:
+    raise ValueError(f"Error creating credentials from service account info: {e}")
+    
 # Inisialisasi Firebase
-service_account_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-cred = service_account.Credentials.from_service_account_info(service_account_info)
-
 firebase_admin.initialize_app(
     cred,
     {
