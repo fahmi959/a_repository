@@ -5,6 +5,10 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
 import os
+import json
+
+
+
 
 # Inisialisasi Firebase
 service_account_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
