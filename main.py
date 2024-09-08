@@ -642,16 +642,29 @@ def broadcast(update: Update, context: CallbackContext):
 
     broadcast_message = ' '.join(context.args)
 
+    # URL gambar profil bot atau gambar yang ingin dikirim
+    # Gunakan URL gambar atau ID file gambar yang diupload
+    bot_profile_photo_url = 'https://upload.wikimedia.org/wikipedia/id/6/6a/Prof_Martono_UNNES.png'  # Ganti dengan URL gambar yang sesuai
+
     # Get all user IDs from Firestore
     users_ref = db.collection('users')
     users = users_ref.stream()
 
     for user in users:
-        user_id = user.id
-        context.bot.send_message(chat_id=user_id, text=broadcast_message)
+        recipient_id = user.id
+        try:
+            # Send the photo with caption
+            context.bot.send_photo(
+                chat_id=recipient_id,
+                photo=bot_profile_photo_url,
+                caption=broadcast_message
+            )
+        except Exception as e:
+            logging.error(f"Failed to send broadcast to {recipient_id}: {e}")
 
     context.bot.send_message(chat_id=user_id,
-                             text="Broadcast message sent to all users.")
+                             text="Broadcast message and photo sent to all users.")
+
 
 
 def list_banned(update: Update, context: CallbackContext):
