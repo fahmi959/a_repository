@@ -42,11 +42,13 @@ def start(update: Update, context: CallbackContext):
     # Periksa apakah pengguna ter-banned
     banned_user_ref = db.collection('banned_users').document(str(user_id))
     if banned_user_ref.get().exists:
-        context.bot.send_message(
-            chat_id=user_id,
-            text=
-            "Anda telah dibanned dan tidak dapat mendaftar lagi. Silakan hubungi kontak admin@bot.unnes kirimkan email dan kirimkan bukti skrinshot tanggal terakhir kali anda di banned untuk melakukan banding dan pengecekan terkait."
-        )
+        try:
+            context.bot.send_message(
+                chat_id=user_id,
+                text="Anda telah dibanned dan tidak dapat mendaftar lagi. Silakan hubungi kontak admin@bot.unnes kirimkan email dan kirimkan bukti skrinshot tanggal terakhir kali anda di banned untuk melakukan banding dan pengecekan terkait."
+            )
+        except Exception as e:
+            print(f"Failed to send message: {e}")
         return
 
     # Simpan pengguna ke Firestore tanpa foto
@@ -58,20 +60,24 @@ def start(update: Update, context: CallbackContext):
     })
 
     # Ambil dan simpan foto profil jika tersedia
-    profile_photos = context.bot.get_user_profile_photos(user_id)
-    if profile_photos.total_count > 0:
-        photo_id = profile_photos.photos[0][-1].file_id
-        file = context.bot.get_file(photo_id)
-        file.download('profile_photo.jpg')
+    try:
+        profile_photos = context.bot.get_user_profile_photos(user_id)
+        if profile_photos.total_count > 0:
+            photo_id = profile_photos.photos[0][-1].file_id
+            file = context.bot.get_file(photo_id)
+            file.download('profile_photo.jpg')
 
-        # Unggah gambar ke Firebase Storage
-        blob = bucket.blob(f'profile_photos/{user_id}.jpg')
-        blob.upload_from_filename('profile_photo.jpg')
-        profile_photo_url = blob.public_url
+            # Unggah gambar ke Firebase Storage
+            blob = bucket.blob(f'profile_photos/{user_id}.jpg')
+            blob.upload_from_filename('profile_photo.jpg')
+            profile_photo_url = blob.public_url
 
-        # Update Firestore dengan URL foto profil
-        user_doc_ref.update({'photo': profile_photo_url})
+            # Update Firestore dengan URL foto profil
+            user_doc_ref.update({'photo': profile_photo_url})
+    except Exception as e:
+        print(f"Failed to handle profile photo: {e}")
 
+    # Buat keyboard inline
     keyboard = [[
         InlineKeyboardButton("/search", callback_data='search'),
         InlineKeyboardButton("/next", callback_data='next')
@@ -81,12 +87,15 @@ def start(update: Update, context: CallbackContext):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    context.bot.send_message(
-        chat_id=user_id,
-        text=
-        ("Anda telah terdaftar. Silakan gunakan perintah /search untuk mencari pasangan. "
-         "Gunakan tombol di bawah untuk menggunakan perintah bot."),
-        reply_markup=reply_markup)
+    try:
+        context.bot.send_message(
+            chat_id=user_id,
+            text=("Anda telah terdaftar. Silakan gunakan perintah /search untuk mencari pasangan. "
+                 "Gunakan tombol di bawah untuk menggunakan perintah bot."),
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        print(f"Failed to send message: {e}")
 
 
 # Untuk Mengetahui Update Riwayat Rekam jejak User
@@ -782,6 +791,10 @@ def button(update: Update, context: CallbackContext):
     query.answer()  # Acknowledge the callback query
 
 
+
+
+
+
 def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -793,15 +806,13 @@ def main():
     dp.add_handler(CommandHandler("next", next_chat))
     dp.add_handler(CommandHandler("userinfo", user_info))
     dp.add_handler(CommandHandler("partnerinfo", partner_info))
-    dp.add_handler(CommandHandler("broadcast", broadcast))  # Add this line
+    dp.add_handler(CommandHandler("broadcast", broadcast))
     dp.add_handler(CommandHandler("banned_user", banned_user))
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
-    dp.add_handler(CommandHandler("list_banned", list_banned))  # Add this line
+    dp.add_handler(CommandHandler("list_banned", list_banned))
 
-    dp.add_handler(
-        MessageHandler(Filters.text & ~Filters.command, handle_message))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
-
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     dp.add_handler(MessageHandler(Filters.voice, handle_voice_note))
     dp.add_handler(MessageHandler(Filters.location, handle_location))
@@ -811,7 +822,6 @@ def main():
 
     updater.start_polling()
     updater.idle()
-
 
 if __name__ == '__main__':
     main()
