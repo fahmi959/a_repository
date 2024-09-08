@@ -8,7 +8,7 @@ from telegram.ext import CallbackQueryHandler
 
 # Inisialisasi Firebase
 cred = credentials.Certificate(
-    "bot-unnes-telegram-firebase-adminsdk-7f07u-f128960c28.json")
+    "bot-unnes-telegram-firebase-adminsdk-7f07u-f3ea9de690.json")
 firebase_admin.initialize_app(
     cred,
     {
