@@ -1,0 +1,9 @@
+# Ignore Python bytecode
+*.pyc
+__pycache__/
+
+# Ignore Firebase credentials
+applicationsecurityfirebase.json
+
+# Ignore environment files
+.env
