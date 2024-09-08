@@ -1,21 +1,23 @@
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from firebase_admin import storage
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
 import os
 
 # Inisialisasi Firebase
-current_dir = os.path.dirname(os.path.abspath(_file_))
+current_dir = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(current_dir, "bot-unnes-telegram-firebase-adminsdk-7f07u-f3ea9de690.json")
+
+cred = credentials.Certificate(json_path)
 firebase_admin.initialize_app(
     cred,
     {
-        'storageBucket':
-        'bot-unnes-telegram.appspot.com'  # Ganti dengan ID bucket Anda
-    })
+        'storageBucket': 'bot-unnes-telegram.appspot.com'  # Ganti dengan ID bucket Anda
+    }
+)
+
 db = firestore.client()
 
 # Dapatkan referensi bucket
