@@ -379,8 +379,12 @@ def handle_message(update: Update, context: CallbackContext):
                         log_file.write(message_data)
                     context.bot.send_message(chat_id=partner_id, text=update.message.text)
                     upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-
-          
+                  
+                elif update.message.sticker:
+                    sticker_id = update.message.sticker.file_id
+                    blob = bucket.blob(f'stickers/{sticker_id}.jpg')
+                    blob.upload_from_filename('temp_sticker.jpg')
+                    context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
             except Exception as e:
                 logging.error(f"Error handling message: {e}")
