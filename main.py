@@ -6,8 +6,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
 import os
 import json
-from google.oauth2 import service_account
 
+
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -32,7 +33,6 @@ else:
     try:
         drive_credentials = json.loads(DRIVE_CREDENTIALS_JSON)
         logging.info('DRIVE_CREDENTIALS JSON is valid.')
-        # Lanjutkan dengan penggunaan drive_credentials
     except json.JSONDecodeError:
         logging.error('Invalid JSON format in DRIVE_CREDENTIALS.')
 
@@ -70,6 +70,7 @@ def authenticate_google_drive():
         return service
     except Exception as e:
         logging.error(f'Authentication error: {e}')
+        return None
 
 def upload_log_to_google_drive(file_path, folder_id):
     if not os.path.exists(file_path):
@@ -79,8 +80,12 @@ def upload_log_to_google_drive(file_path, folder_id):
     logging.info(f'Uploading file {file_path} to Google Drive.')
     service = authenticate_google_drive()
 
+    if service is None:
+        logging.error('Google Drive service could not be authenticated.')
+        return
+
     file_metadata = {
-        'name': file_path.split('/')[-1],
+        'name': os.path.basename(file_path),
         'parents': [folder_id]
     }
     media = MediaFileUpload(file_path)
@@ -94,7 +99,6 @@ def upload_log_to_google_drive(file_path, folder_id):
         logging.info(f'File ID: {file.get("id")}')
     except Exception as e:
         logging.error(f'An error occurred: {e}')
-
 
 def start(update: Update, context: CallbackContext):
     user = update.message.from_user
