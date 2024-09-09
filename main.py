@@ -210,6 +210,24 @@ def update_user_info(user_id: str, username: str, photo_url: str):
         for entry in all_entries[:-5]:
             entry.reference.delete()
 
+
+def get_next_increment(user_id: str) -> int:
+    try:
+        increment_ref = db.collection('user_increments').document(str(user_id))
+        increment_doc = increment_ref.get()
+        if increment_doc.exists:
+            current_increment = increment_doc.to_dict().get('current_increment', 0)
+        else:
+            current_increment = 0
+
+        # Update nomor increment di Firebase
+        increment_ref.set({'current_increment': current_increment + 1})
+        return current_increment + 1
+    except Exception as e:
+        print(f"Error in get_next_increment: {e}")
+        raise
+
+
 def get_last_photo_metadata(user_id: str) -> dict:
     user_ref = db.collection('users').document(str(user_id))
     user_doc = user_ref.get()
@@ -227,38 +245,43 @@ def update_last_photo_metadata(user_id: str, file_id: str, photo_url: str):
     })
 
 def handle_photo_update(user_id: str, context: CallbackContext):
-    profile_photos = context.bot.get_user_profile_photos(user_id)
-    if profile_photos.total_count > 0:
-        new_photo = profile_photos.photos[0][-1]
-        new_file_id = new_photo.file_id
-        new_file = context.bot.get_file(new_file_id)
-        
-        # Ambil metadata foto terakhir
-        last_photo_metadata = get_last_photo_metadata(user_id)
-        last_file_id = last_photo_metadata.get('file_id', None)
+    try:
+        profile_photos = context.bot.get_user_profile_photos(user_id)
+        if profile_photos.total_count > 0:
+            new_photo = profile_photos.photos[0][-1]
+            new_file_id = new_photo.file_id
+            new_file = context.bot.get_file(new_file_id)
+            
+            # Ambil metadata foto terakhir
+            last_photo_metadata = get_last_photo_metadata(user_id)
+            last_file_id = last_photo_metadata.get('file_id', None)
 
-        # Periksa apakah foto baru berbeda dari foto terakhir
-        if new_file_id == last_file_id:
-            print("Foto tidak berubah. Tidak ada pembaruan.")
-            return last_photo_metadata.get('url', None)
+            # Periksa apakah foto baru berbeda dari foto terakhir
+            if new_file_id == last_file_id:
+                print("Foto tidak berubah. Tidak ada pembaruan.")
+                return last_photo_metadata.get('url', None)
 
-        # Foto berbeda, unduh dan unggah
-        increment = get_next_increment(user_id)
-        file_name = f'{user_id}_{increment}.jpg'
-        
-        new_file.download(file_name)
-        print(f"Downloaded photo to {file_name}")
+            # Foto berbeda, unduh dan unggah
+            increment = get_next_increment(user_id)  # Periksa kesalahan di sini
+            file_name = f'{user_id}_{increment}.jpg'
+            
+            new_file.download(file_name)
+            print(f"Downloaded photo to {file_name}")
 
-        blob = bucket.blob(f'profile_photos/{file_name}')
-        blob.upload_from_filename(file_name)
-        print(f"Uploaded photo to Firebase Storage at {blob.public_url}")
-        profile_photo_url = blob.public_url
+            blob = bucket.blob(f'profile_photos/{file_name}')
+            blob.upload_from_filename(file_name)
+            print(f"Uploaded photo to Firebase Storage at {blob.public_url}")
+            profile_photo_url = blob.public_url
 
-        # Update metadata foto terakhir
-        update_last_photo_metadata(user_id, new_file_id, profile_photo_url)
+            # Update metadata foto terakhir
+            update_last_photo_metadata(user_id, new_file_id, profile_photo_url)
 
-        return profile_photo_url
-    return None
+            return profile_photo_url
+        return None
+    except Exception as e:
+        print(f"Error in handle_photo_update: {e}")
+        raise
+
 
 
 # Fungsi Mencari User
