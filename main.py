@@ -326,7 +326,8 @@ def generate_unique_timestamp():
 
 # Pengelola Pesan
 def handle_message(update: Update, context: CallbackContext):
-     logging.info('Received message')
+    logging.info('Received message')
+    
     if update.message:
         user_id = update.message.from_user.id
         chat_ref = db.collection('active_chats').document(str(user_id))
