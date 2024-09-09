@@ -49,7 +49,7 @@ cred = credentials.Certificate(google_credentials)
 firebase_admin.initialize_app(
     cred,
     {
-        'storageBucket': 'bot-unnes-telegram.appspot.com'  # Ganti dengan ID bucket Anda
+        'storageBucket': 'list-bot--telegram.appspot.com'  # Ganti dengan ID bucket Anda
     }
 )
 
