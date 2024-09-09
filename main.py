@@ -775,7 +775,62 @@ def unbanned_user(update: Update, context: CallbackContext):
 
 
 
+# List of admin IDs
+admin_ids = [2082265412, 6069719700]  # Ganti dengan ID admin yang sesuai
 
+def lapor_admin(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+
+    # Check if message has text
+    if context.args:
+        report_text = ' '.join(context.args)
+    else:
+        report_text = "Laporan tanpa teks."
+
+    # Check if message has photo
+    if update.message.photo:
+        # Get the highest resolution photo
+        photo = update.message.photo[-1]
+        file = photo.get_file()
+        file.download(f"{user_id}_report_photo.jpg")
+        photo_path = f"{user_id}_report_photo.jpg"
+    else:
+        photo_path = None
+
+    for admin_id in admin_ids:
+        try:
+            # Send text and photo (if available) to each admin
+            if photo_path:
+                with open(photo_path, 'rb') as photo_file:
+                    context.bot.send_photo(
+                        chat_id=admin_id,
+                        photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
+                        caption=f"Laporan dari pengguna {user_id}: {report_text}"
+                    )
+            else:
+                context.bot.send_message(
+                    chat_id=admin_id,
+                    text=f"Laporan dari pengguna {user_id}: {report_text}"
+                )
+        except Exception as e:
+            logging.error(f"Failed to send report to admin {admin_id}: {e}")
+
+    # Delete the local photo file if it was created
+    if photo_path:
+        os.remove(photo_path)
+
+    # Notify the user that the report was sent
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="Laporan Anda telah dikirim ke admin."
+    )
+
+    # Optionally, return to the active chat
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="Kembali ke chat aktif."
+    )
 
 
 def button(update: Update, context: CallbackContext):
@@ -811,8 +866,16 @@ def main():
     dp.add_handler(CommandHandler("list_banned", list_banned))
 
 
-  
 
+    # Add handler for /lapor_admin
+    dp.add_handler(CommandHandler('lapor_admin', lapor_admin))
+    
+    # Add handler for text messages (to handle non-command messages)
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, lapor_admin))
+    
+    # Add handler for photos
+    dp.add_handler(MessageHandler(Filters.photo, lapor_admin))
+  
 
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
