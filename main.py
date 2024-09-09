@@ -8,7 +8,12 @@ import os
 import json
 from google.oauth2 import service_account
 
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
+
+# Ambil kredensial dari variabel lingkungan
+DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
 
 # Load the JSON credentials from an environment variable
 google_credentials = json.loads(os.environ.get('GOOGLE_CREDENTIALS'))
@@ -33,6 +38,27 @@ bucket = storage.bucket()
 # Token dari BotFather
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
+
+def authenticate_google_drive():
+    credentials_info = json.loads(DRIVE_CREDENTIALS_JSON)
+    credentials = service_account.Credentials.from_service_account_info(credentials_info)
+    service = build('drive', 'v3', credentials=credentials)
+    return service
+
+def upload_log_to_google_drive(file_path, folder_id):
+    service = authenticate_google_drive()
+    
+    file_metadata = {
+        'name': file_path.split('/')[-1],
+        'parents': [folder_id]  # ID folder Google Drive untuk penyimpanan
+    }
+    media = MediaFileUpload(file_path)
+    file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id'
+    ).execute()
+    print(f'File ID: {file.get("id")}')
 
 def start(update: Update, context: CallbackContext):
     user = update.message.from_user
@@ -293,133 +319,60 @@ def handle_message(update: Update, context: CallbackContext):
         chat = chat_ref.get()
 
         if chat.exists:
-            partner_id = chat.to_dict()['partner']
-            timestamp = generate_unique_timestamp()
+            partner_id = chat.to_dict().get('partner')
+            timestamp = datetime.now().isoformat()
 
             try:
+                log_file_path = '/tmp/chat_log.txt'
+
                 if update.message.text:
-                    message_data = {
-                        'sender_id': user_id,
-                        'recipient_id': partner_id,
-                        'type': 'text',
-                        'content': update.message.text,
-                        'timestamp': timestamp
-                    }
-                    db.collection('messages').document(timestamp).set(
-                        message_data)
-                    context.bot.send_message(chat_id=partner_id,
-                                             text=update.message.text)
+                    message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
+                    with open(log_file_path, 'a') as log_file:
+                        log_file.write(message_data)
+                    context.bot.send_message(chat_id=partner_id, text=update.message.text)
 
                 elif update.message.photo:
                     photo_id = update.message.photo[-1].file_id
                     file = context.bot.get_file(photo_id)
                     local_path = f'/tmp/{photo_id}.jpg'
-                    try:
-                        file.download(local_path)
-                        logging.info("Photo downloaded successfully.")
-
-                        blob = bucket.blob(f'images/{photo_id}.jpg')
-                        blob.upload_from_filename(local_path)
-                        image_url = blob.public_url
-                        logging.info(
-                            f"Image uploaded to Firebase Storage: {image_url}")
-
-                        message_data = {
-                            'sender_id': user_id,
-                            'recipient_id': partner_id,
-                            'type': 'photo',
-                            'content': image_url,
-                            'timestamp': timestamp
-                        }
-                        db.collection('messages').document(timestamp).set(
-                            message_data)
-                        context.bot.send_photo(chat_id=partner_id,
-                                               photo=image_url)
-                    except Exception as e:
-                        logging.error(f"Failed to handle photo: {e}")
-                        context.bot.send_message(chat_id=user_id,
-                                                 text="Gagal memproses foto.")
-                    finally:
-                        if os.path.exists(local_path):
-                            os.remove(local_path)
+                    file.download(local_path)
+                    
+                    message_data = f"{timestamp} - {user_id} sent a photo\n"
+                    with open(log_file_path, 'a') as log_file:
+                        log_file.write(message_data)
+                    
+                    upload_log_to_google_drive(local_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
                 elif update.message.voice:
                     voice_id = update.message.voice.file_id
                     file = context.bot.get_file(voice_id)
                     local_path = f'/tmp/{voice_id}.ogg'
-                    try:
-                        file.download(local_path)
-                        logging.info("Voice note downloaded successfully.")
-
-                        blob = bucket.blob(f'voices/{voice_id}.ogg')
-                        blob.upload_from_filename(local_path)
-                        voice_url = blob.public_url
-                        logging.info(
-                            f"Voice note uploaded to Firebase Storage: {voice_url}"
-                        )
-
-                        message_data = {
-                            'sender_id': user_id,
-                            'recipient_id': partner_id,
-                            'type': 'voice',
-                            'content': voice_url,
-                            'timestamp': timestamp
-                        }
-                        db.collection('messages').document(timestamp).set(
-                            message_data)
-                        context.bot.send_voice(chat_id=partner_id,
-                                               voice=voice_url)
-                    except Exception as e:
-                        logging.error(f"Failed to handle voice note: {e}")
-                        context.bot.send_message(
-                            chat_id=user_id,
-                            text="Gagal memproses voice note.")
-                    finally:
-                        if os.path.exists(local_path):
-                            os.remove(local_path)
+                    file.download(local_path)
+                    
+                    message_data = f"{timestamp} - {user_id} sent a voice note\n"
+                    with open(log_file_path, 'a') as log_file:
+                        log_file.write(message_data)
+                    
+                    upload_log_to_google_drive(local_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
                 elif update.message.location:
                     location = update.message.location
-                    location_message = f"Lokasi: Latitude {location.latitude}, Longitude {location.longitude}"
-                    try:
-                        db.collection('user_locations').document(
-                            str(user_id)).set({
-                                'latitude':
-                                location.latitude,
-                                'longitude':
-                                location.longitude,
-                                'timestamp':
-                                firestore.SERVER_TIMESTAMP
-                            })
-                        logging.info("Location updated in Firestore.")
-
-                        message_data = {
-                            'sender_id': user_id,
-                            'recipient_id': partner_id,
-                            'type': 'location',
-                            'content': location_message,
-                            'timestamp': timestamp
-                        }
-                        db.collection('messages').document(timestamp).set(
-                            message_data)
-                        context.bot.send_message(chat_id=partner_id,
-                                                 text=location_message)
-                    except Exception as e:
-                        logging.error(f"Failed to handle location: {e}")
-                        context.bot.send_message(
-                            chat_id=user_id, text="Gagal memproses lokasi.")
+                    location_message = f"Location: Latitude {location.latitude}, Longitude {location.longitude}"
+                    
+                    message_data = f"{timestamp} - {user_id} sent location: {location_message}\n"
+                    with open(log_file_path, 'a') as log_file:
+                        log_file.write(message_data)
+                    
+                    context.bot.send_message(chat_id=partner_id, text=location_message)
+                    upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
             except Exception as e:
                 logging.error(f"Error handling message: {e}")
-                context.bot.send_message(
-                    chat_id=user_id,
-                    text="Terjadi kesalahan saat memproses pesan.")
+                context.bot.send_message(chat_id=user_id, text="Terjadi kesalahan saat memproses pesan.")
         else:
-            context.bot.send_message(
-                chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
+            context.bot.send_message(chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
     else:
-        context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="Pesan tidak ditemukan.")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Pesan tidak ditemukan.")
 
 
 def handle_photo(update: Update, context: CallbackContext):
@@ -835,6 +788,8 @@ def main():
 
     updater.start_polling()
     updater.idle()
+
+
 
 if __name__ == '__main__':
     main()
