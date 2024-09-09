@@ -40,10 +40,14 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
 def authenticate_google_drive():
-    credentials_info = json.loads(DRIVE_CREDENTIALS_JSON)
-    credentials = service_account.Credentials.from_service_account_info(credentials_info)
-    service = build('drive', 'v3', credentials=credentials)
-    return service
+    try:
+        credentials_info = json.loads(DRIVE_CREDENTIALS_JSON)
+        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        service = build('drive', 'v3', credentials=credentials)
+        print('Google Drive authenticated successfully.')
+        return service
+    except Exception as e:
+        print(f'Authentication error: {e}')
 
 def upload_log_to_google_drive(file_path, folder_id):
     if not os.path.exists(file_path):
