@@ -46,19 +46,29 @@ def authenticate_google_drive():
     return service
 
 def upload_log_to_google_drive(file_path, folder_id):
+    if not os.path.exists(file_path):
+        print(f'File {file_path} does not exist.')
+        return
+
+    print(f'Uploading file {file_path} to Google Drive.')
     service = authenticate_google_drive()
-    
+
     file_metadata = {
         'name': file_path.split('/')[-1],
-        'parents': [folder_id]  # ID folder Google Drive untuk penyimpanan
+        'parents': [folder_id]
     }
     media = MediaFileUpload(file_path)
-    file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id'
-    ).execute()
-    print(f'File ID: {file.get("id")}')
+    
+    try:
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        print(f'File ID: {file.get("id")}')
+    except Exception as e:
+        print(f'An error occurred: {e}')
+
 
 def start(update: Update, context: CallbackContext):
     user = update.message.from_user
