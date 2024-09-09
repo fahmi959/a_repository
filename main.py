@@ -774,16 +774,27 @@ def unbanned_user(update: Update, context: CallbackContext):
         chat_id=user_id, text=f"User {unbanned_user_id} has been unbanned.")
 
 
-# Menyimpan laporan yang menunggu konfirmasi admin
-pending_reports = {}
+# Definisikan ID admin untuk konfirmasi laporan
+ADMIN_IDS = [2082265412, 6069719700]
 
-def report_admin(update: Update, context: CallbackContext):
+def admin_response(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
-    if update.message.text:
-        report_text = update.message.text
-    else:
-        report_text = "No text provided"
 
+    # Mengecek jika ada pesan teks
+    if update.message.text:
+        context.user_data['report_text'] = update.message.text
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (opsional).")
+        return
+    else:
+        context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
+        return
+
+def response_foto(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat = chat_ref.get()
+
+    # Mengecek jika ada foto
     if update.message.photo:
         photo_id = update.message.photo[-1].file_id
         photo_file = context.bot.get_file(photo_id)
@@ -792,60 +803,25 @@ def report_admin(update: Update, context: CallbackContext):
     else:
         photo_path = None
 
-    chat_ref = db.collection('active_chats').document(str(user_id))
-    chat = chat_ref.get()
-
-    ADMIN_IDS = [2082265412, 6069719700]
-
     if chat.exists:
         partner_id = chat.to_dict().get('partner')
-        pending_reports[user_id] = {'text': report_text, 'photo': photo_path, 'partner_id': partner_id}
+        report_text = context.user_data.get('report_text', "No text provided")
 
-        # Kirim pesan konfirmasi ke admin
+        # Kirim laporan langsung ke chat admin
+        message = f"Laporan dari User {user_id}:\nID User: {user_id}\nID Partner: {partner_id}\n\nPesan: {report_text}"
         for admin_id in ADMIN_IDS:
-            keyboard = [
-                [InlineKeyboardButton("Setuju", callback_data=f"approve_{user_id}"),
-                 InlineKeyboardButton("Tolak", callback_data=f"reject_{user_id}")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            context.bot.send_message(chat_id=admin_id,
-                                     text=f"User {user_id} melaporkan: {report_text}",
-                                     reply_markup=reply_markup)
-
-        context.bot.send_message(chat_id=user_id, text="Laporan Anda telah dikirim ke admin untuk konfirmasi.")
-    else:
-        context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
-
-def handle_admin_response(update: Update, context: CallbackContext):
-    query = update.callback_query
-    data = query.data.split('_')
-    action = data[0]
-    user_id = int(data[1])
-
-    if action == 'approve':
-        report = pending_reports.pop(user_id, None)  # Mengambil dan menghapus laporan dari pending_reports
-        if report:
-            text = report['text']
-            photo_path = report.get('photo')
-            partner_id = report['partner_id']
-
-            # Kirimkan laporan ke chat admin
-            message = f"Laporan dari User {user_id}:\nPartner ID: {partner_id}\n\nPesan: {text}"
             if photo_path:
                 with open(photo_path, 'rb') as photo:
-                    context.bot.send_photo(chat_id=query.from_user.id, photo=photo, caption=message)
+                    context.bot.send_photo(chat_id=admin_id, photo=photo, caption=message)
             else:
-                context.bot.send_message(chat_id=query.from_user.id, text=message)
+                context.bot.send_message(chat_id=admin_id, text=message)
 
-            context.bot.send_message(chat_id=user_id, text="Laporan Anda telah diterima oleh admin.")
-        else:
-            context.bot.send_message(chat_id=user_id, text="Laporan Anda tidak ditemukan.")
-    elif action == 'reject':
-        context.bot.send_message(chat_id=user_id, text="Laporan Anda ditolak oleh admin.")
-
-    query.answer()
-
-
+        context.bot.send_message(chat_id=user_id, text="Laporan Anda telah dikirim ke admin.")
+        
+        # Reset data user setelah laporan dikirim
+        context.user_data.clear()
+    else:
+        context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -881,13 +857,18 @@ def main():
     dp.add_handler(CommandHandler("banned_user", banned_user))
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
     dp.add_handler(CommandHandler("list_banned", list_banned))
-    dp.add_handler(CommandHandler("lapor_admin", report_admin))
+    dp.add_handler(CommandHandler("lapor_admin", admin_response))
+
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, admin_response))
+    dp.add_handler(MessageHandler(Filters.photo, response_foto))
 
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     dp.add_handler(MessageHandler(Filters.voice, handle_voice_note))
     dp.add_handler(MessageHandler(Filters.location, handle_location))
+
+  
 
     # Tambahkan handler untuk tombol inline
     dp.add_handler(CallbackQueryHandler(button))
