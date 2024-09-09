@@ -89,16 +89,32 @@ def upload_log_to_google_drive(file_path, folder_id):
         'parents': [folder_id]
     }
     media = MediaFileUpload(file_path)
-    
+
     try:
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
-        ).execute()
-        logging.info(f'File ID: {file.get("id")}')
+        # Search for existing files with the same name
+        query = f"name='{os.path.basename(file_path)}' and '{folder_id}' in parents"
+        existing_files = service.files().list(q=query, spaces='drive', fields='files(id)').execute().get('files', [])
+        
+        if existing_files:
+            # If file exists, update it
+            file_id = existing_files[0]['id']
+            service.files().update(
+                fileId=file_id,
+                body=file_metadata,
+                media_body=media
+            ).execute()
+            logging.info(f'Updated File ID: {file_id}')
+        else:
+            # If file does not exist, create a new one
+            file = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+            logging.info(f'Created File ID: {file.get("id")}')
     except Exception as e:
         logging.error(f'An error occurred: {e}')
+
 
 def start(update: Update, context: CallbackContext):
     user = update.message.from_user
@@ -353,9 +369,10 @@ def handle_message(update: Update, context: CallbackContext):
             partner_id = chat.to_dict().get('partner')
             timestamp = datetime.now().isoformat()
 
-            try:
-                log_file_path = '/tmp/chat_log.txt'
+            # Ganti nama file log berdasarkan user_id
+            log_file_path = f'/tmp/{user_id}_chat_log.txt'
 
+            try:
                 if update.message.text:
                     message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
                     with open(log_file_path, 'a') as log_file:
@@ -405,6 +422,7 @@ def handle_message(update: Update, context: CallbackContext):
             context.bot.send_message(chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Pesan tidak ditemukan.")
+
 
 
 def handle_photo(update: Update, context: CallbackContext):
