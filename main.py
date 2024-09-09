@@ -805,44 +805,19 @@ def lapor_admin(update: Update, context: CallbackContext):
             context.bot.send_message(chat_id=chat_id, text="Terjadi kesalahan saat memproses laporan.")
             return
 
-        # Check if message has a photo
-        photo_path = None
-        if update.message.photo:
-            # Get the highest resolution photo
-            photo = update.message.photo[-1]
-            file = photo.get_file()
-            photo_path = f"{user_id}_report_photo.jpg"
-            file.download(photo_path)
-
         for admin_id in admin_ids:
             try:
-                # Send text and photo (if available) to each admin
-                if photo_path:
-                    with open(photo_path, 'rb') as photo_file:
-                        context.bot.send_photo(
-                            chat_id=admin_id,
-                            photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
-                            caption=(
-                                f"ID Pelapor: {user_id}\n"
-                                f"ID Terlapor: {partner_id}\n"
-                                f"Pesan: {report_text}"
-                            )
-                        )
-                else:
-                    context.bot.send_message(
-                        chat_id=admin_id,
-                        text=(
-                            f"ID Pelapor: {user_id}\n"
-                            f"ID Terlapor: {partner_id}\n"
-                            f"Pesan: {report_text}"
-                        )
+                # Send text only to each admin
+                context.bot.send_message(
+                    chat_id=admin_id,
+                    text=(
+                        f"ID Pelapor: {user_id}\n"
+                        f"ID Terlapor: {partner_id}\n"
+                        f"Pesan: {report_text}"
                     )
+                )
             except Exception as e:
                 logging.error(f"Failed to send report to admin {admin_id}: {e}")
-
-        # Delete the local photo file if it was created
-        if photo_path:
-            os.remove(photo_path)
 
         # Notify the user that the report was sent
         context.bot.send_message(
@@ -855,6 +830,7 @@ def lapor_admin(update: Update, context: CallbackContext):
             chat_id=chat_id,
             text="Kembali ke chat aktif."
         )
+
 
 
 def button(update: Update, context: CallbackContext):
