@@ -411,33 +411,35 @@ def handle_voice_note(update: Update, context: CallbackContext):
     # Ambil partner_id dari Firestore
     chat_ref = db.collection('active_chats').document(str(user_id))
     chat = chat_ref.get()
+    
     if chat.exists:
         partner_id = chat.to_dict().get('partner')
 
         try:
-            # Download voice note dari Telegram ke buffer in-memory
-            file = context.bot.get_file(file_id)
-            file_data = io.BytesIO()
-            file.download(out=file_data)
-            file_data.seek(0)  # Reset buffer pointer to start
+            # Kirim voice note ke partner
+            context.bot.send_voice(chat_id=partner_id, voice=file_id)
 
-            # Upload ke Firebase Storage dari buffer
-            bucket = storage.bucket()
+            # Unduh file voice note dari Telegram ke file lokal
+            file = context.bot.get_file(file_id)
+            local_file_path = os.path.join('/tmp/', f'{file_id}.ogg')
+            file.download(out=local_file_path)
+
+            # Upload file ke Firebase Storage dari file lokal
+            bucket = storage_client.bucket(bucket_name)
             blob = bucket.blob(f'voice_notes/{file_id}.ogg')
-            blob.upload_from_file(file_data, content_type='audio/ogg')
-            
-            # Hapus buffer setelah upload
-            file_data.close()
+            blob.upload_from_filename(local_file_path, content_type='audio/ogg')
+
+            # Hapus file lokal setelah upload
+            os.remove(local_file_path)
 
             # Ambil URL dari file yang diupload
             file_url = blob.public_url
 
-            # Kirimkan URL voice note ke partner
-            context.bot.send_voice(chat_id=partner_id, voice=file_url)
-        
+            # Kirim pesan konfirmasi kepada pengguna
+            context.bot.send_message(chat_id=user_id, text=f"Voice note berhasil dikirim dan disimpan. URL: {file_url}")
+
         except Exception as e:
             logging.error(f"Failed to process voice note: {e}")
-            # Kirim pesan ke pengguna hanya jika ada masalah
             context.bot.send_message(chat_id=user_id, text="Gagal mengirim voice note.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
