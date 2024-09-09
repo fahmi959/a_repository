@@ -577,7 +577,7 @@ def partner_info(update: Update, context: CallbackContext):
     partner_username = partner_data.get('username', 'Tidak ada username')
     partner_photo_id = partner_data.get('photo', None)  # Assuming the 'photo' field contains the photo ID
 
-    response_text = f"User ID: {partner_id}<br>Username: {partner_username}<br>"
+    response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
 
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
@@ -589,13 +589,14 @@ def partner_info(update: Update, context: CallbackContext):
         # Construct the correct file path
         file_path = f"profile_photos/{partner_photo_id}.jpg"
         photo_url = generate_public_url(file_path)
-        response_text += f"Foto Profil: <a href='{photo_url}'>Lihat Foto</a>"
+        response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
     else:
         response_text += "Foto Profil: Tidak tersedia."
 
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
-                             parse_mode='HTML')
+                             parse_mode='Markdown')
+
 
 
 
