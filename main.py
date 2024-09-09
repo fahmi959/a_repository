@@ -792,7 +792,8 @@ def admin_response(update: Update, context: CallbackContext):
     # Jika perintah datang dengan teks langsung
     if text and text != "/lapor_admin":
         context.user_data['report_text'] = text
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
+        context.user_data['waiting_for_report_text'] = False
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
         return
 
     # Jika perintah datang tanpa teks, meminta input teks
@@ -856,10 +857,10 @@ def response_foto(update: Update, context: CallbackContext):
         # Mengarahkan kembali ke chat dengan pasangan
         if partner_id:
             context.bot.send_message(chat_id=user_id, text=f"Anda sekarang kembali ke chat dengan pasangan Anda.")
-            # Kirim pesan ke partner juga jika perlu
             context.bot.send_message(chat_id=partner_id, text=f"User {user_id} telah mengirim laporan dan kembali ke chat.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
+
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
