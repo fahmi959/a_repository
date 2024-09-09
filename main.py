@@ -779,15 +779,28 @@ ADMIN_IDS = [2082265412, 6069719700]
 
 def admin_response(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
-
-    # Mengecek jika ada pesan teks
-    if update.message.text:
-        context.user_data['report_text'] = update.message.text
+    text = update.message.text
+    
+    # Jika perintah datang dengan teks langsung
+    if text and text != "/lapor_admin":
+        context.user_data['report_text'] = text
         context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (opsional).")
         return
+
+    # Jika perintah datang tanpa teks, meminta input teks
+    context.user_data['waiting_for_report_text'] = True
+    context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
+
+def handle_text_message(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    text = update.message.text
+
+    if context.user_data.get('waiting_for_report_text'):
+        context.user_data['report_text'] = text
+        context.user_data['waiting_for_report_text'] = False
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (opsional).")
     else:
-        context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
-        return
+        context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
 
 def response_foto(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
@@ -861,14 +874,14 @@ def main():
 
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, admin_response))
     dp.add_handler(MessageHandler(Filters.photo, response_foto))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
 
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     dp.add_handler(MessageHandler(Filters.voice, handle_voice_note))
     dp.add_handler(MessageHandler(Filters.location, handle_location))
 
-  
+
 
     # Tambahkan handler untuk tombol inline
     dp.add_handler(CallbackQueryHandler(button))
