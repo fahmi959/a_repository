@@ -774,89 +774,66 @@ def unbanned_user(update: Update, context: CallbackContext):
 # List of admin IDs
 admin_ids = [2082265412, 6069719700]  # Ganti dengan ID admin yang sesuai
 
-# Dictionary to store the state of each user
-user_states = {}
-
 def lapor_admin(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
-    
-    # Initialize user state if not already present
-    if user_id not in user_states:
-        user_states[user_id] = {'waiting_for_message': True, 'waiting_for_photo': False}
-    
-    # Check current state
-    state = user_states[user_id]
-    
-    if state['waiting_for_message']:
-        # Extract report text from command arguments or prompt user for message
-        report_text = ' '.join(context.args) if context.args else "Laporan tanpa teks."
+    # Check if the command is /lapor_admin
+    if update.message.text.startswith('/lapor_admin'):
+        user_id = update.message.from_user.id
+        chat_id = update.message.chat_id
+
+        # Extract arguments from command
+        args = context.args
+        if len(args) < 1:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="Format perintah salah. Gunakan: /lapor_admin <reported_user_id> <report_text>"
+            )
+            return
+
+        reported_user_id = args[0]
+        report_text = ' '.join(args[1:]) if len(args) > 1 else "Laporan tanpa teks."
         
-        # Set state to wait for photo next
-        state['waiting_for_message'] = False
-        state['waiting_for_photo'] = True
-        
-        # Notify the user to send a photo or type /cancel to abort
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f"Pesan Anda telah diterima. Kirimkan screenshot atau gambar terkait, atau ketik /cancel untuk membatalkan."
-        )
-    
-    elif state['waiting_for_photo']:
-        # Handle photo
+        # Check if message has a photo
+        photo_path = None
         if update.message.photo:
             # Get the highest resolution photo
             photo = update.message.photo[-1]
             file = photo.get_file()
             photo_path = f"{user_id}_report_photo.jpg"
             file.download(photo_path)
-            
-            # Send the report with the photo to admins
-            for admin_id in admin_ids:
-                try:
+
+        for admin_id in admin_ids:
+            try:
+                # Send text and photo (if available) to each admin
+                if photo_path:
                     with open(photo_path, 'rb') as photo_file:
                         context.bot.send_photo(
                             chat_id=admin_id,
                             photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
-                            caption=f"Laporan dari pengguna {user_id}: {report_text}"
+                            caption=f"Laporan dari pengguna {user_id} tentang pengguna {reported_user_id}: {report_text}"
                         )
-                except Exception as e:
-                    logging.error(f"Failed to send report to admin {admin_id}: {e}")
-            
-            # Delete the local photo file if it was created
-            if os.path.exists(photo_path):
-                os.remove(photo_path)
-                
-            # Notify the user that the report was sent
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Laporan Anda telah dikirim ke admin."
-            )
-        
-        else:
-            # If no photo received, treat it as a message
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Foto tidak diterima. Laporan Anda telah dikirim tanpa foto."
-            )
-        
-        # Reset user state
-        user_states[user_id] = {'waiting_for_message': False, 'waiting_for_photo': False}
+                else:
+                    context.bot.send_message(
+                        chat_id=admin_id,
+                        text=f"Laporan dari pengguna {user_id} tentang pengguna {reported_user_id}: {report_text}"
+                    )
+            except Exception as e:
+                logging.error(f"Failed to send report to admin {admin_id}: {e}")
 
-def cancel(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    if user_id in user_states and user_states[user_id]['waiting_for_message']:
-        user_states[user_id] = {'waiting_for_message': False, 'waiting_for_photo': False}
+        # Delete the local photo file if it was created
+        if photo_path:
+            os.remove(photo_path)
+
+        # Notify the user that the report was sent
         context.bot.send_message(
-            chat_id=update.message.chat_id,
-            text="Pelaporan dibatalkan."
-        )
-    else:
-        context.bot.send_message(
-            chat_id=update.message.chat_id,
-            text="Tidak ada pelaporan yang sedang berlangsung."
+            chat_id=chat_id,
+            text="Laporan Anda telah dikirim ke admin."
         )
 
+        # Optionally, return to the active chat
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Kembali ke chat aktif."
+        )
 
 
 def button(update: Update, context: CallbackContext):
@@ -892,12 +869,12 @@ def main():
     dp.add_handler(CommandHandler("list_banned", list_banned))
 
 
-    dp.add_handler(CommandHandler("lapor_admin", lapor_admin))
-    dp.add_handler(CommandHandler("cancel", cancel))  # Added cancel command handler
-
-
+   
     # Add handler for text messages that are not commands
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command & ~Filters.regex('^/lapor_admin'), handle_message))
+    dp.add_handler(CommandHandler("lapor_admin", lapor_admin))
+
+  
 
     # dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
