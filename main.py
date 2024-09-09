@@ -780,7 +780,15 @@ ADMIN_IDS = [2082265412, 6069719700]
 def admin_response(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     text = update.message.text
-    
+
+    # Mengecek keberadaan pasangan aktif
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat = chat_ref.get()
+
+    if not chat.exists:
+        context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
+        return
+
     # Jika perintah datang dengan teks langsung
     if text and text != "/lapor_admin":
         context.user_data['report_text'] = text
