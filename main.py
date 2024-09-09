@@ -774,6 +774,88 @@ def unbanned_user(update: Update, context: CallbackContext):
         chat_id=user_id, text=f"User {unbanned_user_id} has been unbanned.")
 
 
+def admin_response(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    text = update.message.text
+
+    # Mengecek keberadaan pasangan aktif
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat = chat_ref.get()
+
+    if not chat.exists:
+        context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
+        return
+
+    # Jika perintah adalah /lapor_admin dan tidak ada teks, meminta input teks
+    if text == "/lapor_admin":
+        context.user_data['waiting_for_report_text'] = True
+        context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
+    else:
+        # Jika teks langsung diberikan, simpan teks dan arahkan ke unggah gambar
+        context.user_data['report_text'] = text
+        context.user_data['waiting_for_report_text'] = False
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
+
+
+def handle_text_message(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    text = update.message.text
+
+    if context.user_data.get('waiting_for_report_text'):
+        context.user_data['report_text'] = text
+        context.user_data['waiting_for_report_text'] = False
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
+    else:
+        context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
+
+
+def response_foto(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat = chat_ref.get()
+
+    # Mengecek jika ada foto
+    if update.message.photo:
+        photo_id = update.message.photo[-1].file_id
+        photo_file = context.bot.get_file(photo_id)
+        photo_file.download('/tmp/report_photo.jpg')
+        photo_path = '/tmp/report_photo.jpg'
+        photo_sent = True
+    else:
+        photo_path = None
+        photo_sent = False
+
+    if chat.exists:
+        partner_id = chat.to_dict().get('partner')
+        report_text = context.user_data.get('report_text', "No text provided")
+
+        # Kirim laporan langsung ke chat admin
+        message = f"Laporan dari User {user_id}:\nID User: {user_id}\nID Partner: {partner_id}\n\nPesan: {report_text}"
+        for admin_id in ADMIN_IDS:
+            try:
+                if photo_sent:
+                    with open(photo_path, 'rb') as photo:
+                        context.bot.send_photo(chat_id=admin_id, photo=photo, caption=message)
+                else:
+                    context.bot.send_message(chat_id=admin_id, text=message)
+                logger.info(f"Report sent to admin {admin_id}.")
+            except Exception as e:
+                logger.error(f"Failed to send report to admin {admin_id}: {e}")
+
+        # Kirim pesan konfirmasi kepada pengguna
+        context.bot.send_message(chat_id=user_id, text="Laporan Anda telah dikirim ke admin.")
+        
+        # Reset data user setelah laporan dikirim
+        context.user_data.clear()
+
+        # Mengarahkan kembali ke chat dengan pasangan
+        if partner_id:
+            context.bot.send_message(chat_id=user_id, text=f"Anda sekarang kembali ke chat dengan pasangan Anda.")
+            context.bot.send_message(chat_id=partner_id, text=f"User {user_id} telah mengirim laporan dan kembali ke chat.")
+    else:
+        context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
+
+
 
 
 
@@ -793,9 +875,6 @@ def button(update: Update, context: CallbackContext):
 
 
 
-
-
-
 def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -812,6 +891,11 @@ def main():
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
     dp.add_handler(CommandHandler("list_banned", list_banned))
 
+
+  
+    dp.add_handler(CommandHandler("lapor_admin", admin_response))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
+    dp.add_handler(MessageHandler(Filters.photo, response_foto))
 
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
