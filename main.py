@@ -789,16 +789,16 @@ def admin_response(update: Update, context: CallbackContext):
         context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
         return
 
-    # Jika perintah datang dengan teks langsung
-    if text and text != "/lapor_admin":
+    # Jika perintah adalah /lapor_admin dan tidak ada teks, meminta input teks
+    if text == "/lapor_admin":
+        context.user_data['waiting_for_report_text'] = True
+        context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
+    else:
+        # Jika teks langsung diberikan, simpan teks dan arahkan ke unggah gambar
         context.user_data['report_text'] = text
         context.user_data['waiting_for_report_text'] = False
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
-        return
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
 
-    # Jika perintah datang tanpa teks, meminta input teks
-    context.user_data['waiting_for_report_text'] = True
-    context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
 
 
 def handle_text_message(update: Update, context: CallbackContext):
@@ -808,8 +808,7 @@ def handle_text_message(update: Update, context: CallbackContext):
     if context.user_data.get('waiting_for_report_text'):
         context.user_data['report_text'] = text
         context.user_data['waiting_for_report_text'] = False
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
-        # Indikasi bahwa teks sudah diterima, dan bot akan menunggu foto selanjutnya
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
     else:
         context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
 
@@ -860,6 +859,7 @@ def response_foto(update: Update, context: CallbackContext):
             context.bot.send_message(chat_id=partner_id, text=f"User {user_id} telah mengirim laporan dan kembali ke chat.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
+
 
 
 def button(update: Update, context: CallbackContext):
