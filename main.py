@@ -210,22 +210,52 @@ def update_user_info(user_id: str, username: str, photo_url: str):
         for entry in all_entries[:-5]:
             entry.reference.delete()
 
+def get_last_photo_metadata(user_id: str) -> dict:
+    user_ref = db.collection('users').document(str(user_id))
+    user_doc = user_ref.get()
+    if user_doc.exists:
+        return user_doc.to_dict().get('last_photo', {})
+    return {}
+
+def update_last_photo_metadata(user_id: str, file_id: str, photo_url: str):
+    user_ref = db.collection('users').document(str(user_id))
+    user_ref.update({
+        'last_photo': {
+            'file_id': file_id,
+            'url': photo_url
+        }
+    })
 
 def handle_photo_update(user_id: str, context: CallbackContext):
     profile_photos = context.bot.get_user_profile_photos(user_id)
     if profile_photos.total_count > 0:
-        photo_id = profile_photos.photos[0][-1].file_id
-        file = context.bot.get_file(photo_id)
-        file.download(
-            f'{photo_id}.jpg')  # Menggunakan ID foto sebagai nama file
-        print(f"Downloaded photo to {photo_id}.jpg")
+        new_photo = profile_photos.photos[0][-1]
+        new_file_id = new_photo.file_id
+        new_file = context.bot.get_file(new_file_id)
+        
+        # Ambil metadata foto terakhir
+        last_photo_metadata = get_last_photo_metadata(user_id)
+        last_file_id = last_photo_metadata.get('file_id', None)
 
-        # Unggah gambar ke Firebase Storage
-        blob = bucket.blob(
-            f'profile_photos/{photo_id}.jpg')  # Nama file di Firebase Storage
-        blob.upload_from_filename(f'{photo_id}.jpg')
+        # Periksa apakah foto baru berbeda dari foto terakhir
+        if new_file_id == last_file_id:
+            print("Foto tidak berubah. Tidak ada pembaruan.")
+            return last_photo_metadata.get('url', None)
+
+        # Foto berbeda, unduh dan unggah
+        increment = get_next_increment(user_id)
+        file_name = f'{user_id}_{increment}.jpg'
+        
+        new_file.download(file_name)
+        print(f"Downloaded photo to {file_name}")
+
+        blob = bucket.blob(f'profile_photos/{file_name}')
+        blob.upload_from_filename(file_name)
         print(f"Uploaded photo to Firebase Storage at {blob.public_url}")
         profile_photo_url = blob.public_url
+
+        # Update metadata foto terakhir
+        update_last_photo_metadata(user_id, new_file_id, profile_photo_url)
 
         return profile_photo_url
     return None
