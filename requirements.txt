@@ -1,6 +1,7 @@
 requests==2.32.3
 firebase-admin==6.5.0
 python-telegram-bot==13.7
-
-pymongo==4.1.1
-gridfs==2.0.1
+google-auth==2.18.0
+google-auth-oauthlib==0.7.1
+google-auth-httplib2==0.1.0
+google-api-python-client==2.80.0
