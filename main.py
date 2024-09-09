@@ -85,10 +85,9 @@ def upload_log_to_google_drive(file_path, folder_id):
         return
 
     file_metadata = {
-        'name': os.path.basename(file_path),
-        'parents': [folder_id]
+        'name': os.path.basename(file_path)
     }
-    media = MediaFileUpload(file_path)
+    media = MediaFileUpload(file_path, resumable=True)
 
     try:
         # Search for existing files with the same name
@@ -98,14 +97,15 @@ def upload_log_to_google_drive(file_path, folder_id):
         if existing_files:
             # If file exists, update it
             file_id = existing_files[0]['id']
+            # Perform the update request to replace the content of the file
             service.files().update(
                 fileId=file_id,
-                body=file_metadata,
                 media_body=media
             ).execute()
             logging.info(f'Updated File ID: {file_id}')
         else:
             # If file does not exist, create a new one
+            file_metadata['parents'] = [folder_id]
             file = service.files().create(
                 body=file_metadata,
                 media_body=media,
