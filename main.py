@@ -382,8 +382,6 @@ def handle_message(update: Update, context: CallbackContext):
                   
                 elif update.message.sticker:
                     sticker_id = update.message.sticker.file_id
-                    blob = bucket.blob(f'stickers/{sticker_id}.jpg')
-                    blob.upload_from_filename('temp_sticker.jpg')
                     context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
             except Exception as e:
