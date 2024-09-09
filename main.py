@@ -799,6 +799,7 @@ def admin_response(update: Update, context: CallbackContext):
     context.user_data['waiting_for_report_text'] = True
     context.bot.send_message(chat_id=user_id, text="Silakan masukkan pesan teks untuk laporan.")
 
+
 def handle_text_message(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     text = update.message.text
@@ -806,9 +807,11 @@ def handle_text_message(update: Update, context: CallbackContext):
     if context.user_data.get('waiting_for_report_text'):
         context.user_data['report_text'] = text
         context.user_data['waiting_for_report_text'] = False
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
+        # Tidak perlu reset data user di sini
     else:
         context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
+
 
 def response_foto(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
@@ -852,7 +855,7 @@ def response_foto(update: Update, context: CallbackContext):
         # Mengarahkan kembali ke chat dengan pasangan
         if partner_id:
             context.bot.send_message(chat_id=user_id, text=f"Anda sekarang kembali ke chat dengan pasangan Anda.")
-            # Misalnya, kirim pesan ke partner juga jika perlu
+            # Kirim pesan ke partner juga jika perlu
             context.bot.send_message(chat_id=partner_id, text=f"User {user_id} telah mengirim laporan dan kembali ke chat.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
@@ -892,6 +895,9 @@ def main():
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
     dp.add_handler(CommandHandler("list_banned", list_banned))
     dp.add_handler(CommandHandler("lapor_admin", admin_response))
+
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
+    dp.add_handler(MessageHandler(Filters.photo, response_foto))
 
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, admin_response))
     dp.add_handler(MessageHandler(Filters.photo, response_foto))
