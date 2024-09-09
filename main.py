@@ -345,6 +345,7 @@ def handle_message(update: Update, context: CallbackContext):
                     with open(log_file_path, 'a') as log_file:
                         log_file.write(message_data)
                     context.bot.send_message(chat_id=partner_id, text=update.message.text)
+                    upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
                 elif update.message.photo:
                     photo_id = update.message.photo[-1].file_id
