@@ -552,10 +552,10 @@ def handle_location(update: Update, context: CallbackContext):
 import urllib.parse
 
 # Function to generate a public URL for the file directly from Telegram
-def generate_telegram_url(file_id: str) -> str:
+def generate_telegram_url(file_id: str, context: CallbackContext) -> str:
     """Construct the URL to access a Telegram file."""
     base_url = 'https://api.telegram.org/file/bot'
-    token = 'YOUR_BOT_TOKEN'  # Replace with your actual bot token
+    token = '7483413347:AAGcUbEL7TsZ_9H2UUEBlx2R6qwM5Vly9tg'  # Replace with your actual bot token Telegram FatherBot
     
     # Get file path from Telegram API
     file_info = context.bot.get_file(file_id)
@@ -587,7 +587,7 @@ def user_info(update: Update, context: CallbackContext):
     profile_photos = context.bot.get_user_profile_photos(user_id)
     if profile_photos.total_count > 0:
         photo_id = profile_photos.photos[0][-1].file_id
-        photo_url = generate_telegram_url(photo_id)
+        photo_url = generate_telegram_url(photo_id, context)
         response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
     else:
         response_text += "Foto Profil: Tidak tersedia."
@@ -629,7 +629,7 @@ def partner_info(update: Update, context: CallbackContext):
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
         partner_photo_id = profile_photos.photos[0][-1].file_id
-        photo_url = generate_telegram_url(partner_photo_id)
+        photo_url = generate_telegram_url(partner_photo_id, context)
         response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
     else:
         response_text += "Foto Profil: Tidak tersedia."
