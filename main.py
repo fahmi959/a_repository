@@ -24,6 +24,11 @@ logging.basicConfig(level=logging.INFO,
 
 # Ambil kredensial dari variabel lingkungan
 DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
+if DRIVE_CREDENTIALS_JSON is None:
+    logging.error('DRIVE_CREDENTIALS is not set.')
+else:
+    logging.info('DRIVE_CREDENTIALS is set.')
+
 
 # Load the JSON credentials from an environment variable
 google_credentials = json.loads(os.environ.get('GOOGLE_CREDENTIALS'))
