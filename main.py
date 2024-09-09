@@ -775,70 +775,60 @@ def unbanned_user(update: Update, context: CallbackContext):
 
 
 
-# Constants for conversation states
-ASKING_FOR_REPORT = range(1)
-
 # List of admin IDs
-admin_ids = [2082265412, 6069719700]  # Replace with actual admin IDs
+admin_ids = [2082265412, 6069719700]  # Ganti dengan ID admin yang sesuai
 
-def lapor_admin_start(update: Update, context: CallbackContext):
-    update.message.reply_text("Mohon masukkan laporan Anda:")
-    return ASKING_FOR_REPORT
+def lapor_admin(update: Update, context: CallbackContext):
+    # Check if the command is /lapor_admin
+    if update.message.text.startswith('/lapor_admin'):
+        user_id = update.message.from_user.id
+        chat_id = update.message.chat_id
 
-def lapor_admin_handle_text(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
-    report_text = update.message.text
-    
-    # Check if message has a photo
-    photo_path = None
-    if update.message.photo:
-        # Get the highest resolution photo
-        photo = update.message.photo[-1]
-        file = photo.get_file()
-        photo_path = f"{user_id}_report_photo.jpg"
-        file.download(photo_path)
-    
-    for admin_id in admin_ids:
-        try:
-            # Send text and photo (if available) to each admin
-            if photo_path:
-                with open(photo_path, 'rb') as photo_file:
-                    context.bot.send_photo(
+        # Extract report text from command arguments
+        report_text = ' '.join(context.args) if context.args else "Laporan tanpa teks."
+        
+        # Check if message has a photo
+        photo_path = None
+        if update.message.photo:
+            # Get the highest resolution photo
+            photo = update.message.photo[-1]
+            file = photo.get_file()
+            photo_path = f"{user_id}_report_photo.jpg"
+            file.download(photo_path)
+
+        for admin_id in admin_ids:
+            try:
+                # Send text and photo (if available) to each admin
+                if photo_path:
+                    with open(photo_path, 'rb') as photo_file:
+                        context.bot.send_photo(
+                            chat_id=admin_id,
+                            photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
+                            caption=f"Laporan dari pengguna {user_id}: {report_text}"
+                        )
+                else:
+                    context.bot.send_message(
                         chat_id=admin_id,
-                        photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
-                        caption=f"Laporan dari pengguna {user_id}: {report_text}"
+                        text=f"Laporan dari pengguna {user_id}: {report_text}"
                     )
-            else:
-                context.bot.send_message(
-                    chat_id=admin_id,
-                    text=f"Laporan dari pengguna {user_id}: {report_text}"
-                )
-        except Exception as e:
-            logging.error(f"Failed to send report to admin {admin_id}: {e}")
-    
-    # Delete the local photo file if it was created
-    if photo_path:
-        os.remove(photo_path)
-    
-    # Notify the user that the report was sent
-    context.bot.send_message(
-        chat_id=chat_id,
-        text="Laporan Anda telah dikirim ke admin."
-    )
+            except Exception as e:
+                logging.error(f"Failed to send report to admin {admin_id}: {e}")
 
-    # Optionally, return to the active chat
-    context.bot.send_message(
-        chat_id=chat_id,
-        text="Kembali ke chat aktif."
-    )
-    
-    return ConversationHandler.END
+        # Delete the local photo file if it was created
+        if photo_path:
+            os.remove(photo_path)
 
-def cancel(update: Update, context: CallbackContext):
-    update.message.reply_text("Laporan dibatalkan.")
-    return ConversationHandler.END
+        # Notify the user that the report was sent
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Laporan Anda telah dikirim ke admin."
+        )
 
+        # Optionally, return to the active chat
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Kembali ke chat aktif."
+        )
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -872,14 +862,7 @@ def main():
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
     dp.add_handler(CommandHandler("list_banned", list_banned))
 
-    # Define the conversation handler
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('lapor_admin', lapor_admin_start)],
-        states={
-            ASKING_FOR_REPORT: [MessageHandler(Filters.text & ~Filters.command, lapor_admin_handle_text)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
-    )
+
 
     dp.add_handler(CommandHandler("lapor_admin", lapor_admin))
 
