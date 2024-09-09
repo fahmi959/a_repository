@@ -380,40 +380,7 @@ def handle_message(update: Update, context: CallbackContext):
                     context.bot.send_message(chat_id=partner_id, text=update.message.text)
                     upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
-                elif update.message.photo:
-                    photo_id = update.message.photo[-1].file_id
-                    file = context.bot.get_file(photo_id)
-                    local_path = f'/tmp/{photo_id}.jpg'
-                    file.download(local_path)
-                    
-                    message_data = f"{timestamp} - {user_id} sent a photo\n"
-                    with open(log_file_path, 'a') as log_file:
-                        log_file.write(message_data)
-                    
-                    upload_log_to_google_drive(local_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-
-                elif update.message.voice:
-                    voice_id = update.message.voice.file_id
-                    file = context.bot.get_file(voice_id)
-                    local_path = f'/tmp/{voice_id}.ogg'
-                    file.download(local_path)
-                    
-                    message_data = f"{timestamp} - {user_id} sent a voice note\n"
-                    with open(log_file_path, 'a') as log_file:
-                        log_file.write(message_data)
-                    
-                    upload_log_to_google_drive(local_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-
-                elif update.message.location:
-                    location = update.message.location
-                    location_message = f"Location: Latitude {location.latitude}, Longitude {location.longitude}"
-                    
-                    message_data = f"{timestamp} - {user_id} sent location: {location_message}\n"
-                    with open(log_file_path, 'a') as log_file:
-                        log_file.write(message_data)
-                    
-                    context.bot.send_message(chat_id=partner_id, text=location_message)
-                    upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
+          
 
             except Exception as e:
                 logging.error(f"Error handling message: {e}")
