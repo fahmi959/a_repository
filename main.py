@@ -596,9 +596,65 @@ def partner_info(update: Update, context: CallbackContext):
     else:
         response_text += "Foto Profil: Tidak tersedia."
 
+
+def partner_info(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+
+    # Get the active chat for the user
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat_doc = chat_ref.get()
+
+    if not chat_doc.exists:
+        context.bot.send_message(chat_id=user_id,
+                                 text="Anda tidak sedang dalam chat.")
+        return
+
+    partner_id = chat_doc.to_dict().get('partner')
+
+    # Retrieve partner's information
+    partner_ref = db.collection('users').document(str(partner_id))
+    partner_doc = partner_ref.get()
+
+    if not partner_doc.exists:
+        context.bot.send_message(chat_id=user_id,
+                                 text="Informasi tentang pasangan tidak ditemukan.")
+        return
+
+    partner_data = partner_doc.to_dict()
+    partner_username = partner_data.get('username', 'Tidak ada username')
+    partner_photo_id = partner_data.get('photo', None)  # Field photo dari Firestore
+
+    response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
+
+    # Check if photo exists in user data
+    if partner_photo_id:
+        try:
+            # Download the photo if it exists
+            profile_photos = context.bot.get_user_profile_photos(partner_id)
+            if profile_photos.total_count > 0:
+                partner_photo_id = profile_photos.photos[0][-1].file_id
+                file = context.bot.get_file(partner_photo_id)
+                file.download(f'{partner_photo_id}.jpg')  # Using file ID as the filename
+                print(f"Downloaded photo to {partner_photo_id}.jpg")
+
+                # Construct the correct file path and generate URL
+                file_path = f"profile_photos/{partner_photo_id}.jpg"
+                photo_url = generate_public_url(file_path)
+                response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
+            else:
+                response_text += "Foto Profil: Tidak tersedia."
+        except Exception as e:
+            # Handle any error that occurs while fetching the photo
+            print(f"Error fetching profile photo: {e}")
+            response_text += "Foto Profil: Tidak tersedia."
+    else:
+        response_text += "Foto Profil: Tidak tersedia."
+
+    # Send the constructed message to the user
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
                              parse_mode='Markdown')
+
 
 
 def broadcast(update: Update, context: CallbackContext):
