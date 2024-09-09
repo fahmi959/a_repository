@@ -808,9 +808,10 @@ def handle_text_message(update: Update, context: CallbackContext):
         context.user_data['report_text'] = text
         context.user_data['waiting_for_report_text'] = False
         context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Opsional, jika ada).")
-        # Tidak perlu reset data user di sini
+        # Indikasi bahwa teks sudah diterima, dan bot akan menunggu foto selanjutnya
     else:
         context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
+
 
 
 def response_foto(update: Update, context: CallbackContext):
@@ -899,9 +900,8 @@ def main():
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
     dp.add_handler(MessageHandler(Filters.photo, response_foto))
 
+
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, admin_response))
-    dp.add_handler(MessageHandler(Filters.photo, response_foto))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
 
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
