@@ -23,7 +23,7 @@ import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-logger = logging.getLogger(__name__)
+
 
 # Ambil kredensial dari variabel lingkungan
 DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
