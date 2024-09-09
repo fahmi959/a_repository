@@ -779,12 +779,12 @@ def unbanned_user(update: Update, context: CallbackContext):
 admin_ids = [2082265412, 6069719700]  # Ganti dengan ID admin yang sesuai
 
 def lapor_admin(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
+    # Check if the command is /lapor_admin
+    if update.message.text.startswith('/lapor_admin'):
+        user_id = update.message.from_user.id
+        chat_id = update.message.chat_id
 
-    # Check if the message is from /lapor_admin command
-    if update.message.text and update.message.text.startswith('/lapor_admin'):
-        # Remove the command from the text
+        # Extract report text from command arguments
         report_text = ' '.join(context.args) if context.args else "Laporan tanpa teks."
         
         # Check if message has a photo
@@ -865,15 +865,12 @@ def main():
 
 
 
-    # Add handler for /lapor_admin
-    dp.add_handler(CommandHandler('lapor_admin', lapor_admin))
-    
-    # Ensure that only valid /lapor_admin commands are processed
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, lapor_admin))
-    dp.add_handler(MessageHandler(Filters.photo, lapor_admin))
-  
+    dp.add_handler(CommandHandler("lapor_admin", lapor_admin))
 
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    # Add handler for text messages that are not commands
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command & ~Filters.regex('^/lapor_admin'), handle_message))
+
+    # dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     dp.add_handler(MessageHandler(Filters.voice, handle_voice_note))
