@@ -784,7 +784,7 @@ def admin_response(update: Update, context: CallbackContext):
     # Jika perintah datang dengan teks langsung
     if text and text != "/lapor_admin":
         context.user_data['report_text'] = text
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (opsional).")
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
         return
 
     # Jika perintah datang tanpa teks, meminta input teks
@@ -798,7 +798,7 @@ def handle_text_message(update: Update, context: CallbackContext):
     if context.user_data.get('waiting_for_report_text'):
         context.user_data['report_text'] = text
         context.user_data['waiting_for_report_text'] = False
-        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (opsional).")
+        context.bot.send_message(chat_id=user_id, text="Tolong unggah gambar (Wajib).")
     else:
         context.bot.send_message(chat_id=user_id, text="Perintah tidak dikenali.")
 
