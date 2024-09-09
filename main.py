@@ -187,26 +187,27 @@ def update_user_info(user_id: str, username: str, photo_url: str):
     user_doc_ref = db.collection('users').document(str(user_id))
     user_doc_ref.update({'username': username, 'photo': photo_url})
 
-    # Referensi ke koleksi riwayat pengguna
-    history_ref = db.collection('user_history').document(str(user_id))
+    # Referensi ke dokumen riwayat pengguna
+    history_doc_ref = db.collection('user_history').document(str(user_id))
 
-    # Tambahkan entri riwayat baru
-    history_ref.collection('entries').add({
-        'username':
-        username,
-        'photo':
-        photo_url,
-        'timestamp':
-        firestore.SERVER_TIMESTAMP
-    })
+    # Tambahkan entri riwayat baru dengan ID timestamp
+    timestamp = firestore.SERVER_TIMESTAMP
+    history_doc_ref.set({
+        'username': username,
+        'photo': photo_url,
+        'timestamp': timestamp
+    }, merge=True)
 
     # Hapus entri lama jika melebihi batas
-    entries_ref = history_ref.collection('entries')
-    entries = entries_ref.order_by('timestamp').limit_to_last(6).get()
+    entries_ref = db.collection('user_history').document(str(user_id))
+    entries = entries_ref.get()
 
-    if len(entries) > 5:
+    # Ambil semua dokumen dalam koleksi untuk membatasi jumlah entri
+    all_entries = entries_ref.collection('entries').order_by('timestamp').limit_to_last(6).get()
+
+    if len(all_entries) > 5:
         # Hapus entri yang lebih lama
-        for entry in entries[:-5]:
+        for entry in all_entries[:-5]:
             entry.reference.delete()
 
 
@@ -575,7 +576,8 @@ def partner_info(update: Update, context: CallbackContext):
 
     partner_data = partner_doc.to_dict()
     partner_username = partner_data.get('username', 'Tidak ada username')
-    partner_photo_id = partner_data.get('photo', None)  # Assuming the 'photo' field contains the photo ID
+    partner_photo_id = partner_data.get(
+        'photo', None)  # Assuming the 'photo' field contains the photo ID
 
     response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
 
@@ -583,7 +585,8 @@ def partner_info(update: Update, context: CallbackContext):
     if profile_photos.total_count > 0:
         partner_photo_id = profile_photos.photos[0][-1].file_id
         file = context.bot.get_file(partner_photo_id)
-        file.download(f'{partner_photo_id}.jpg')  # Using file ID as the filename
+        file.download(
+            f'{partner_photo_id}.jpg')  # Using file ID as the filename
         print(f"Downloaded photo to {partner_photo_id}.jpg")
 
         # Construct the correct file path
@@ -596,7 +599,6 @@ def partner_info(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
                              parse_mode='Markdown')
-
 
 
 
