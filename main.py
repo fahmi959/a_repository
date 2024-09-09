@@ -813,7 +813,7 @@ def main():
     dp.add_handler(CommandHandler("list_banned", list_banned))
 
 
-   dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     dp.add_handler(MessageHandler(Filters.voice, handle_voice_note))
