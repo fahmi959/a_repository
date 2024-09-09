@@ -22,12 +22,19 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+
 # Ambil kredensial dari variabel lingkungan
 DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
+
 if DRIVE_CREDENTIALS_JSON is None:
     logging.error('DRIVE_CREDENTIALS is not set.')
 else:
-    logging.info('DRIVE_CREDENTIALS is set.')
+    try:
+        drive_credentials = json.loads(DRIVE_CREDENTIALS_JSON)
+        logging.info('DRIVE_CREDENTIALS JSON is valid.')
+        # Lanjutkan dengan penggunaan drive_credentials
+    except json.JSONDecodeError:
+        logging.error('Invalid JSON format in DRIVE_CREDENTIALS.')
 
 
 # Load the JSON credentials from an environment variable
