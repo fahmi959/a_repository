@@ -548,6 +548,24 @@ def handle_location(update: Update, context: CallbackContext):
 
 
 
+
+import urllib.parse
+
+# Function to generate a public URL for the file directly from Telegram
+def generate_telegram_url(file_id: str) -> str:
+    """Construct the URL to access a Telegram file."""
+    base_url = 'https://api.telegram.org/file/bot'
+    token = 'YOUR_BOT_TOKEN'  # Replace with your actual bot token
+    
+    # Get file path from Telegram API
+    file_info = context.bot.get_file(file_id)
+    file_path = file_info.file_path
+    
+    # Construct the URL
+    url = f'{base_url}{token}/{file_path}'
+    
+    return url
+
 def get_user_info(user_id: str):
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
@@ -555,29 +573,10 @@ def get_user_info(user_id: str):
     if user_doc.exists:
         user_data = user_doc.to_dict()
         username = user_data.get('username', 'Tidak ada username')
-        photo_id = user_data.get('photo', 'Tidak ada foto')
-
+        photo_id = user_data.get('photo', None)  # Assume photo ID is stored
         return username, photo_id
     else:
         return None, None
-
-
-import urllib.parse
-
-
-def generate_public_url(file_path):
-    """Construct the public URL for accessing a file in Firebase Storage."""
-    bucket_name = 'bot-unnes-telegram.appspot.com'
-    base_url = 'https://firebasestorage.googleapis.com/v0/b'
-
-    # URL encode the file path to handle special characters
-    file_path_encoded = urllib.parse.quote(file_path, safe='')
-
-    # Construct the URL
-    url = f'{base_url}/{bucket_name}/o/{file_path_encoded}?alt=media&token=432b0dc8-142e-4d8f-ad19-1ce69362377e'
-
-    return url
-
 
 def user_info(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
@@ -588,13 +587,7 @@ def user_info(update: Update, context: CallbackContext):
     profile_photos = context.bot.get_user_profile_photos(user_id)
     if profile_photos.total_count > 0:
         photo_id = profile_photos.photos[0][-1].file_id
-        file = context.bot.get_file(photo_id)
-        file.download(f'{photo_id}.jpg')  # Using file ID as the filename
-        print(f"Downloaded photo to {photo_id}.jpg")
-
-        # Construct the correct file path
-        file_path = f"profile_photos/{photo_id}.jpg"
-        photo_url = generate_public_url(file_path)
+        photo_url = generate_telegram_url(photo_id)
         response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
     else:
         response_text += "Foto Profil: Tidak tersedia."
@@ -629,22 +622,14 @@ def partner_info(update: Update, context: CallbackContext):
 
     partner_data = partner_doc.to_dict()
     partner_username = partner_data.get('username', 'Tidak ada username')
-    partner_photo_id = partner_data.get(
-        'photo', None)  # Assuming the 'photo' field contains the photo ID
+    partner_photo_id = partner_data.get('photo', None)
 
     response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
 
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
         partner_photo_id = profile_photos.photos[0][-1].file_id
-        file = context.bot.get_file(partner_photo_id)
-        file.download(
-            f'{partner_photo_id}.jpg')  # Using file ID as the filename
-        print(f"Downloaded photo to {partner_photo_id}.jpg")
-
-        # Construct the correct file path
-        file_path = f"profile_photos/{partner_photo_id}.jpg"
-        photo_url = generate_public_url(file_path)
+        photo_url = generate_telegram_url(partner_photo_id)
         response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
     else:
         response_text += "Foto Profil: Tidak tersedia."
@@ -652,7 +637,6 @@ def partner_info(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
                              parse_mode='Markdown')
-
 
 
 
