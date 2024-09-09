@@ -405,8 +405,6 @@ def handle_photo(update: Update, context: CallbackContext):
 def handle_voice_note(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     voice = update.message.voice
-
-    # Dapatkan file_id dari voice note
     file_id = voice.file_id
 
     # Ambil partner_id dari Firestore
@@ -416,16 +414,32 @@ def handle_voice_note(update: Update, context: CallbackContext):
         partner_id = chat.to_dict().get('partner')
 
         try:
-            # Kirimkan voice note ke partner
-            context.bot.send_voice(chat_id=partner_id, voice=file_id)
+            # Download voice note dari Telegram ke buffer in-memory
+            file = context.bot.get_file(file_id)
+            file_data = io.BytesIO()
+            file.download(out=file_data)
+            file_data.seek(0)  # Reset buffer pointer to start
+
+            # Upload ke Firebase Storage dari buffer
+            bucket = storage.bucket()
+            blob = bucket.blob(f'voice_notes/{file_id}.ogg')
+            blob.upload_from_file(file_data, content_type='audio/ogg')
+            
+            # Hapus buffer setelah upload
+            file_data.close()
+
+            # Ambil URL dari file yang diupload
+            file_url = blob.public_url
+
+            # Kirimkan URL voice note ke partner
+            context.bot.send_voice(chat_id=partner_id, voice=file_url)
+        
         except Exception as e:
-            logging.error(f"Failed to send voice note: {e}")
+            logging.error(f"Failed to process voice note: {e}")
             # Kirim pesan ke pengguna hanya jika ada masalah
-            context.bot.send_message(chat_id=user_id,
-                                     text="Gagal mengirim voice note.")
+            context.bot.send_message(chat_id=user_id, text="Gagal mengirim voice note.")
     else:
-        context.bot.send_message(chat_id=user_id,
-                                 text="Anda belum terhubung dengan pasangan.")
+        context.bot.send_message(chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
 
 
 def handle_location(update: Update, context: CallbackContext):
