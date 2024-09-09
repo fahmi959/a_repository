@@ -575,29 +575,28 @@ def partner_info(update: Update, context: CallbackContext):
 
     partner_data = partner_doc.to_dict()
     partner_username = partner_data.get('username', 'Tidak ada username')
-    partner_photo_id = partner_data.get(
-        'photo', None)  # Assuming the 'photo' field contains the photo ID
+    partner_photo_id = partner_data.get('photo', None)  # Assuming the 'photo' field contains the photo ID
 
-    response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
+    response_text = f"User ID: {partner_id}<br>Username: {partner_username}<br>"
 
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
         partner_photo_id = profile_photos.photos[0][-1].file_id
         file = context.bot.get_file(partner_photo_id)
-        file.download(
-            f'{partner_photo_id}.jpg')  # Using file ID as the filename
+        file.download(f'{partner_photo_id}.jpg')  # Using file ID as the filename
         print(f"Downloaded photo to {partner_photo_id}.jpg")
 
         # Construct the correct file path
         file_path = f"profile_photos/{partner_photo_id}.jpg"
         photo_url = generate_public_url(file_path)
-        response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
+        response_text += f"Foto Profil: <a href='{photo_url}'>Lihat Foto</a>"
     else:
         response_text += "Foto Profil: Tidak tersedia."
 
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
-                             parse_mode='Markdown')
+                             parse_mode='HTML')
+
 
 
 
