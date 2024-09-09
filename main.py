@@ -12,6 +12,16 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
+from datetime import datetime
+import pytz
+import logging
+
+
+# Setup basic logging configuration
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 # Ambil kredensial dari variabel lingkungan
 DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
 
@@ -44,17 +54,17 @@ def authenticate_google_drive():
         credentials_info = json.loads(DRIVE_CREDENTIALS_JSON)
         credentials = service_account.Credentials.from_service_account_info(credentials_info)
         service = build('drive', 'v3', credentials=credentials)
-        print('Google Drive authenticated successfully.')
+        logging.info('Google Drive authenticated successfully.')
         return service
     except Exception as e:
-        print(f'Authentication error: {e}')
+        logging.error(f'Authentication error: {e}')
 
 def upload_log_to_google_drive(file_path, folder_id):
     if not os.path.exists(file_path):
-        print(f'File {file_path} does not exist.')
+        logging.error(f'File {file_path} does not exist.')
         return
 
-    print(f'Uploading file {file_path} to Google Drive.')
+    logging.info(f'Uploading file {file_path} to Google Drive.')
     service = authenticate_google_drive()
 
     file_metadata = {
@@ -69,9 +79,9 @@ def upload_log_to_google_drive(file_path, folder_id):
             media_body=media,
             fields='id'
         ).execute()
-        print(f'File ID: {file.get("id")}')
+        logging.info(f'File ID: {file.get("id")}')
     except Exception as e:
-        print(f'An error occurred: {e}')
+        logging.error(f'An error occurred: {e}')
 
 
 def start(update: Update, context: CallbackContext):
@@ -309,24 +319,14 @@ def next_chat(update: Update, context: CallbackContext):
     stop_chat(update, context)  # Hentikan chat saat ini
     search(update, context)  # Cari pasangan baru
 
-
-# Pengelola Pesan
-from datetime import datetime
-import pytz
-import logging
-import os
-
-# Setup basic logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-
 def generate_unique_timestamp():
     from datetime import datetime
     return datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
 
 
+# Pengelola Pesan
 def handle_message(update: Update, context: CallbackContext):
+     logging.info('Received message')
     if update.message:
         user_id = update.message.from_user.id
         chat_ref = db.collection('active_chats').document(str(user_id))
