@@ -785,13 +785,26 @@ def lapor_admin(update: Update, context: CallbackContext):
         if len(args) < 1:
             context.bot.send_message(
                 chat_id=chat_id,
-                text="Format perintah salah. Gunakan: /lapor_admin <reported_user_id> <report_text>"
+                text="Format perintah salah. Gunakan: /lapor_admin <report_text>"
             )
             return
 
-        reported_user_id = args[0]
-        report_text = ' '.join(args[1:]) if len(args) > 1 else "Laporan tanpa teks."
+        report_text = ' '.join(args) if len(args) > 0 else "Laporan tanpa teks."
         
+        # Get the partner ID from Firestore
+        try:
+            chat_ref = db.collection('active_chats').document(str(user_id))
+            chat = chat_ref.get()
+            if chat.exists:
+                partner_id = chat.to_dict().get('partner')
+            else:
+                context.bot.send_message(chat_id=chat_id, text="Anda belum terhubung dengan pasangan.")
+                return
+        except Exception as e:
+            logging.error(f"Error accessing Firestore: {e}")
+            context.bot.send_message(chat_id=chat_id, text="Terjadi kesalahan saat memproses laporan.")
+            return
+
         # Check if message has a photo
         photo_path = None
         if update.message.photo:
@@ -809,12 +822,20 @@ def lapor_admin(update: Update, context: CallbackContext):
                         context.bot.send_photo(
                             chat_id=admin_id,
                             photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
-                            caption=f"Laporan dari pengguna {user_id} tentang pengguna {reported_user_id}: {report_text}"
+                            caption=(
+                                f"ID Pelapor: {user_id}\n"
+                                f"ID Terlapor: {partner_id}\n"
+                                f"Pesan: {report_text}"
+                            )
                         )
                 else:
                     context.bot.send_message(
                         chat_id=admin_id,
-                        text=f"Laporan dari pengguna {user_id} tentang pengguna {reported_user_id}: {report_text}"
+                        text=(
+                            f"ID Pelapor: {user_id}\n"
+                            f"ID Terlapor: {partner_id}\n"
+                            f"Pesan: {report_text}"
+                        )
                     )
             except Exception as e:
                 logging.error(f"Failed to send report to admin {admin_id}: {e}")
@@ -834,7 +855,6 @@ def lapor_admin(update: Update, context: CallbackContext):
             chat_id=chat_id,
             text="Kembali ke chat aktif."
         )
-
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
