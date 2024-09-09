@@ -774,87 +774,88 @@ def unbanned_user(update: Update, context: CallbackContext):
 # List of admin IDs
 admin_ids = [2082265412, 6069719700]  # Ganti dengan ID admin yang sesuai
 
-user_reports = {}
-
 def lapor_admin(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
-    text = update.message.text
-
     # Check if the command is /lapor_admin
-    if text.startswith('/lapor_admin'):
-        # Initialize the report dictionary for the user
-        user_reports[user_id] = {'text': None, 'photo': None}
-        context.bot.send_message(
-            chat_id=chat_id,
-            text="Silakan kirimkan teks laporan Anda."
-        )
-        return
+    if update.message.text.startswith('/lapor_admin'):
+        user_id = update.message.from_user.id
+        chat_id = update.message.chat_id
 
-    # Handle the case where user sends text as a report
-    if user_id in user_reports:
-        if user_reports[user_id]['text'] is None:
-            # Save the report text
-            user_reports[user_id]['text'] = text
+        # Extract arguments from command
+        args = context.args
+        if len(args) < 1:
             context.bot.send_message(
                 chat_id=chat_id,
-                text="Teks laporan Anda telah diterima. Silakan kirimkan gambar jika ada."
-            )
-        else:
-            # Handle case where user sends another text instead of a photo
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Gambar belum diterima. Silakan kirimkan gambar atau gunakan perintah /lapor_admin untuk memulai laporan baru."
-            )
-        return
-
-    # Handle photo input
-    if update.message.photo:
-        # Ensure user has started a report process
-        if user_id not in user_reports or user_reports[user_id]['text'] is None:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Anda belum memulai laporan. Gunakan /lapor_admin untuk memulai laporan."
+                text="Format perintah salah. \n Gunakan: /lapor_admin <report_text>"
             )
             return
 
-        # Get the highest resolution photo
-        photo = update.message.photo[-1]
-        file = photo.get_file()
-        photo_path = f"{user_id}_report_photo.jpg"
-        file.download(photo_path)
+        report_text = ' '.join(args) if len(args) > 0 else "Laporan tanpa teks."
+        
+        # Get the partner ID from Firestore
+        try:
+            chat_ref = db.collection('active_chats').document(str(user_id))
+            chat = chat_ref.get()
+            if chat.exists:
+                partner_id = chat.to_dict().get('partner')
+            else:
+                context.bot.send_message(chat_id=chat_id, text="Anda belum terhubung dengan pasangan.")
+                return
+        except Exception as e:
+            logging.error(f"Error accessing Firestore: {e}")
+            context.bot.send_message(chat_id=chat_id, text="Terjadi kesalahan saat memproses laporan.")
+            return
 
-        # Send the report to admins
-        report_text = user_reports[user_id]['text']
+        # Check if message has a photo
+        photo_path = None
+        if update.message.photo:
+            # Get the highest resolution photo
+            photo = update.message.photo[-1]
+            file = photo.get_file()
+            photo_path = f"{user_id}_report_photo.jpg"
+            file.download(photo_path)
+
         for admin_id in admin_ids:
             try:
-                with open(photo_path, 'rb') as photo_file:
-                    context.bot.send_photo(
+                # Send text and photo (if available) to each admin
+                if photo_path:
+                    with open(photo_path, 'rb') as photo_file:
+                        context.bot.send_photo(
+                            chat_id=admin_id,
+                            photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
+                            caption=(
+                                f"ID Pelapor: {user_id}\n"
+                                f"ID Terlapor: {partner_id}\n"
+                                f"Pesan: {report_text}"
+                            )
+                        )
+                else:
+                    context.bot.send_message(
                         chat_id=admin_id,
-                        photo=InputFile(photo_file, filename=f"{user_id}_report_photo.jpg"),
-                        caption=(
+                        text=(
                             f"ID Pelapor: {user_id}\n"
+                            f"ID Terlapor: {partner_id}\n"
                             f"Pesan: {report_text}"
                         )
                     )
             except Exception as e:
                 logging.error(f"Failed to send report to admin {admin_id}: {e}")
 
-        # Clean up and notify user
-        os.remove(photo_path)
-        del user_reports[user_id]
+        # Delete the local photo file if it was created
+        if photo_path:
+            os.remove(photo_path)
+
+        # Notify the user that the report was sent
         context.bot.send_message(
             chat_id=chat_id,
             text="Laporan Anda telah dikirim ke admin."
         )
-        return
 
-    # If the user inputs any text after starting a report but before sending a photo
-    if user_id in user_reports and user_reports[user_id]['text'] is not None:
+        # Optionally, return to the active chat
         context.bot.send_message(
             chat_id=chat_id,
-            text="Laporan sudah dalam proses. Kirimkan gambar atau mulai laporan baru dengan /lapor_admin."
+            text="Kembali ke chat aktif."
         )
+
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
