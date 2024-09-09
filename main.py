@@ -23,7 +23,7 @@ import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-
+logger = logging.getLogger(__name__)
 
 # Ambil kredensial dari variabel lingkungan
 DRIVE_CREDENTIALS_JSON = os.getenv('DRIVE_CREDENTIALS')
@@ -821,8 +821,10 @@ def response_foto(update: Update, context: CallbackContext):
         photo_file = context.bot.get_file(photo_id)
         photo_file.download('/tmp/report_photo.jpg')
         photo_path = '/tmp/report_photo.jpg'
+        photo_sent = True
     else:
         photo_path = None
+        photo_sent = False
 
     if chat.exists:
         partner_id = chat.to_dict().get('partner')
@@ -831,16 +833,27 @@ def response_foto(update: Update, context: CallbackContext):
         # Kirim laporan langsung ke chat admin
         message = f"Laporan dari User {user_id}:\nID User: {user_id}\nID Partner: {partner_id}\n\nPesan: {report_text}"
         for admin_id in ADMIN_IDS:
-            if photo_path:
-                with open(photo_path, 'rb') as photo:
-                    context.bot.send_photo(chat_id=admin_id, photo=photo, caption=message)
-            else:
-                context.bot.send_message(chat_id=admin_id, text=message)
+            try:
+                if photo_sent:
+                    with open(photo_path, 'rb') as photo:
+                        context.bot.send_photo(chat_id=admin_id, photo=photo, caption=message)
+                else:
+                    context.bot.send_message(chat_id=admin_id, text=message)
+                logger.info(f"Report sent to admin {admin_id}.")
+            except Exception as e:
+                logger.error(f"Failed to send report to admin {admin_id}: {e}")
 
+        # Kirim pesan konfirmasi kepada pengguna
         context.bot.send_message(chat_id=user_id, text="Laporan Anda telah dikirim ke admin.")
         
         # Reset data user setelah laporan dikirim
         context.user_data.clear()
+
+        # Mengarahkan kembali ke chat dengan pasangan
+        if partner_id:
+            context.bot.send_message(chat_id=user_id, text=f"Anda sekarang kembali ke chat dengan pasangan Anda.")
+            # Misalnya, kirim pesan ke partner juga jika perlu
+            context.bot.send_message(chat_id=partner_id, text=f"User {user_id} telah mengirim laporan dan kembali ke chat.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda tidak memiliki pasangan aktif untuk melaporkan.")
 
