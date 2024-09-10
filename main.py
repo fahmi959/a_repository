@@ -93,7 +93,7 @@ def upload_log_to_google_drive(file_path, folder_id):
 
     try:
         # Search for existing files with the same name
-        query = f"name='{os.path.basename(file_path)}' and '{folder_id}' in parents"
+        query = f"name='{os.path.basename(file_path)}' and '{folder_id}' in parents and trashed=false"
         existing_files = service.files().list(q=query, spaces='drive', fields='files(id)').execute().get('files', [])
 
         if existing_files:
