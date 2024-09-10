@@ -453,7 +453,7 @@ def handle_message(update: Update, context: CallbackContext):
                     file_info.download(sticker_file_path)
                 
                     # Upload sticker to Google Drive
-                    upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE')
+                    upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
 
                 except Exception as e:
                     logging.error(f"An error occurred: {e}")
