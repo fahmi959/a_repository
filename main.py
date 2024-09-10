@@ -460,14 +460,11 @@ def handle_message(update: Update, context: CallbackContext):
                 message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
                 with open(log_file_path, 'a') as log_file:
                     log_file.write(message_data)
+                
                 context.bot.send_message(chat_id=partner_id, text=update.message.text)
-
-                # Cek ukuran file setelah penulisan dan upload jika perlu
-                if os.path.getsize(log_file_path) >= MAX_LOG_SIZE_BYTES:
-                    upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-                    # Hapus file log lokal setelah diunggah
-                    if os.path.exists(log_file_path):
-                        os.remove(log_file_path)
+                
+                # Upload file log setelah menulis pesan
+                upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
             # Periksa apakah pesan yang diterima adalah stiker
             elif update.message.sticker:
@@ -501,7 +498,6 @@ def handle_message(update: Update, context: CallbackContext):
             context.bot.send_message(chat_id=user_id, text="Terjadi kesalahan saat memproses pesan.")
     else:
         context.bot.send_message(chat_id=user_id, text="Anda belum terhubung dengan pasangan.")
-
 
 
 
