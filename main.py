@@ -455,7 +455,7 @@ def handle_message(update: Update, context: CallbackContext):
                     sticker_file.write(response.content)
                 
                 # Upload sticker to Google Drive
-                upload_log_to_google_drive(sticker_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
+                upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE')
 
                 if os.path.exists(sticker_file_path):
                     os.remove(sticker_file_path)
