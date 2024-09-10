@@ -96,6 +96,8 @@ def upload_log_to_google_drive(file_path, folder_id):
         query = f"name='{os.path.basename(file_path)}' and '{folder_id}' in parents and trashed=false"
         existing_files = service.files().list(q=query, spaces='drive', fields='files(id)').execute().get('files', [])
 
+        logging.info(f'Query result: {existing_files}')
+
         if existing_files:
             # If file exists, update it
             file_id = existing_files[0]['id']
@@ -115,6 +117,7 @@ def upload_log_to_google_drive(file_path, folder_id):
             logging.info(f'Created File ID: {file.get("id")}')
     except Exception as e:
         logging.error(f'An error occurred during upload: {e}')
+
 
 
 
