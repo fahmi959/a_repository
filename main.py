@@ -428,6 +428,21 @@ def generate_unique_timestamp():
 
 
 # Pengelola Pesan
+MAX_LOG_SIZE_MB = 10
+MAX_LOG_SIZE_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
+
+def get_log_file_path(user_id):
+    """Return the current log file path based on size and version."""
+    base_path = '/tmp'
+    log_file_prefix = f'{user_id}_chat_log'
+    log_file_suffix = 1
+
+    while True:
+        log_file_path = os.path.join(base_path, f'{log_file_prefix}_{log_file_suffix}.txt')
+        if not os.path.exists(log_file_path) or os.path.getsize(log_file_path) < MAX_LOG_SIZE_BYTES:
+            return log_file_path
+        log_file_suffix += 1
+
 def handle_message(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     chat_ref = db.collection('active_chats').document(str(user_id))
@@ -437,8 +452,7 @@ def handle_message(update: Update, context: CallbackContext):
         partner_id = chat.to_dict().get('partner')
         timestamp = datetime.now().isoformat()
 
-        # Ganti nama file log berdasarkan user_id
-        log_file_path = f'/tmp/{user_id}_chat_log.txt'
+        log_file_path = get_log_file_path(user_id)
 
         try:
             # Periksa apakah pesan yang diterima adalah teks
@@ -447,10 +461,13 @@ def handle_message(update: Update, context: CallbackContext):
                 with open(log_file_path, 'a') as log_file:
                     log_file.write(message_data)
                 context.bot.send_message(chat_id=partner_id, text=update.message.text)
-                upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-                # Hapus file log lokal setelah diunggah
-                if os.path.exists(log_file_path):
-                    os.remove(log_file_path)
+
+                # Cek ukuran file setelah penulisan dan upload jika perlu
+                if os.path.getsize(log_file_path) >= MAX_LOG_SIZE_BYTES:
+                    upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
+                    # Hapus file log lokal setelah diunggah
+                    if os.path.exists(log_file_path):
+                        os.remove(log_file_path)
 
             # Periksa apakah pesan yang diterima adalah stiker
             elif update.message.sticker:
@@ -478,7 +495,6 @@ def handle_message(update: Update, context: CallbackContext):
                         if os.path.exists(sticker_file_path):
                             os.remove(sticker_file_path)
                             logging.info(f'Removed local file {sticker_file_path}')
-
 
         except Exception as e:
             logging.error(f"Error handling message: {e}")
