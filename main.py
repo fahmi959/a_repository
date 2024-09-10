@@ -427,7 +427,7 @@ def handle_message(update: Update, context: CallbackContext):
 
         # Ganti nama file log berdasarkan user_id
         log_file_path = f'/tmp/{user_id}_chat_log.txt'
-        sticker_file_path = '/tmp/sticker.png' 
+        sticker_file_path = f'/tmp/sticker_{update.message.sticker.file_id}.png' 
 
         try:
             if update.message.text:
@@ -437,7 +437,7 @@ def handle_message(update: Update, context: CallbackContext):
                     log_file.write(message_data)
                 context.bot.send_message(chat_id=partner_id, text=update.message.text)
                 upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
-               # Hapus file log lokal setelah diunggah
+                # Hapus file log lokal setelah diunggah
                 if os.path.exists(log_file_path):
                     os.remove(log_file_path)
               
