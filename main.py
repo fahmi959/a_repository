@@ -86,7 +86,8 @@ def upload_log_to_google_drive(file_path, folder_id):
         return
 
     file_metadata = {
-        'name': os.path.basename(file_path)
+        'name': os.path.basename(file_path),
+        'parents': [folder_id]
     }
     media = MediaFileUpload(file_path, resumable=True)
 
@@ -94,11 +95,10 @@ def upload_log_to_google_drive(file_path, folder_id):
         # Search for existing files with the same name
         query = f"name='{os.path.basename(file_path)}' and '{folder_id}' in parents"
         existing_files = service.files().list(q=query, spaces='drive', fields='files(id)').execute().get('files', [])
-        
+
         if existing_files:
             # If file exists, update it
             file_id = existing_files[0]['id']
-            # Perform the update request to replace the content of the file
             service.files().update(
                 fileId=file_id,
                 media_body=media
@@ -114,7 +114,8 @@ def upload_log_to_google_drive(file_path, folder_id):
             ).execute()
             logging.info(f'Created File ID: {file.get("id")}')
     except Exception as e:
-        logging.error(f'An error occurred: {e}')
+        logging.error(f'An error occurred during upload: {e}')
+
 
 
 def start(update: Update, context: CallbackContext):
