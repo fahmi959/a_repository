@@ -423,6 +423,7 @@ def handle_message(update: Update, context: CallbackContext):
 
         # Ganti nama file log berdasarkan user_id
         log_file_path = f'/tmp/{user_id}_chat_log.txt'
+        sticker_file_path = '/tmp/sticker.png' 
 
         try:
             if update.message.text:
