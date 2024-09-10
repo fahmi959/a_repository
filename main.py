@@ -554,17 +554,15 @@ import urllib.parse
 # Function to generate a public URL for the file directly from Telegram
 def generate_telegram_url(file_id: str, context: CallbackContext) -> str:
     """Construct the URL to access a Telegram file."""
-    base_url = 'https://api.telegram.org/file/bot'
-    token = '7483413347:AAGcUbEL7TsZ_9H2UUEBlx2R6qwM5Vly9tg'  # Replace with your actual bot token Telegram FatherBot
-    
     # Get file path from Telegram API
     file_info = context.bot.get_file(file_id)
     file_path = file_info.file_path
     
     # Construct the URL
-    url = f'{base_url}{token}/{file_path}'
+    url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
     
     return url
+
 
 def get_user_info(user_id: str):
     user_ref = db.collection('users').document(user_id)
@@ -637,7 +635,6 @@ def partner_info(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
                              parse_mode='Markdown')
-
 
 
 def broadcast(update: Update, context: CallbackContext):
