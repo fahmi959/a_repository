@@ -554,7 +554,7 @@ import urllib.parse
 # Function to generate a public URL for the file directly from Telegram
 def generate_telegram_url(file_id: str, context: CallbackContext) -> str:
     """Construct the URL to access a Telegram file."""
-    # Get file path from Telegram API
+    # Get file info from Telegram API
     file_info = context.bot.get_file(file_id)
     file_path = file_info.file_path
     
@@ -562,6 +562,7 @@ def generate_telegram_url(file_id: str, context: CallbackContext) -> str:
     url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
     
     return url
+
 
 
 def get_user_info(user_id: str):
@@ -635,6 +636,7 @@ def partner_info(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=user_id,
                              text=response_text,
                              parse_mode='Markdown')
+
 
 
 def broadcast(update: Update, context: CallbackContext):
