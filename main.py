@@ -441,14 +441,14 @@ def handle_message(update: Update, context: CallbackContext):
                 context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
                 try:
-                # Get file info and download sticker
-                file_info = context.bot.get_file(sticker_id)
+                    # Get file info and download sticker
+                    file_info = context.bot.get_file(sticker_id)
                 
-                # Download file directly
-                file_info.download(sticker_file_path)
+                    # Download file directly
+                    file_info.download(sticker_file_path)
                 
-                # Upload sticker to Google Drive
-                upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE')
+                    # Upload sticker to Google Drive
+                    upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE')
 
                 except Exception as e:
                     logging.error(f"An error occurred: {e}")
