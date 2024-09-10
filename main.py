@@ -440,22 +440,27 @@ def handle_message(update: Update, context: CallbackContext):
                 sticker_id = update.message.sticker.file_id
                 context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
-                # Menentukan lokasi lokal unduhan lokal
                 sticker_file_path = f'/tmp/{sticker_id}.png'
-                # Unduh file sticker dari Telegram
+            
+         
+                # Get file info and download sticker
                 file_info = context.bot.get_sticker_file(sticker_id)
                 file_path = file_info.file_path
                 sticker_url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
                 response = requests.get(sticker_url)
+                response.raise_for_status()
                 
+                # Save sticker to local file
                 with open(sticker_file_path, 'wb') as sticker_file:
                     sticker_file.write(response.content)
-                  # Unggah file sticker ke Google Drive
-                upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
+                
+                # Upload sticker to Google Drive
+                upload_log_to_google_drive(sticker_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
 
-                # Hapus file sticker lokal setelah diunggah
                 if os.path.exists(sticker_file_path):
                     os.remove(sticker_file_path)
+                    logging.info(f'Removed local file {sticker_file_path}')
+
 
         except Exception as e:
             logging.error(f"Error handling message: {e}")
