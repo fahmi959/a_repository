@@ -619,6 +619,9 @@ def user_info(update: Update, context: CallbackContext):
     if profile_photos.total_count > 0:
         photo_file_id = profile_photos.photos[0][-1].file_id
         context.bot.send_photo(chat_id=user_id, photo=photo_file_id)
+        context.bot.send_message(chat_id=user_id,
+                                 text=response_text,
+                                 parse_mode='Markdown')
     else:
         response_text += "Foto Profil: Tidak tersedia."
         context.bot.send_message(chat_id=user_id,
@@ -659,6 +662,9 @@ def partner_info(update: Update, context: CallbackContext):
     if profile_photos.total_count > 0:
         photo_file_id = profile_photos.photos[0][-1].file_id
         context.bot.send_photo(chat_id=user_id, photo=photo_file_id)
+        context.bot.send_message(chat_id=user_id,
+                                 text=response_text,
+                                 parse_mode='Markdown')
     else:
         response_text += "Foto Profil: Tidak tersedia."
         context.bot.send_message(chat_id=user_id,
