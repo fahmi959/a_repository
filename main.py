@@ -7,7 +7,7 @@ from telegram.ext import CallbackQueryHandler
 import os
 import json
 import io
-import requests  
+
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -440,26 +440,23 @@ def handle_message(update: Update, context: CallbackContext):
                 sticker_id = update.message.sticker.file_id
                 context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
-                sticker_file_path = f'/tmp/{sticker_id}.png'
-            
-         
+                try:
                 # Get file info and download sticker
                 file_info = context.bot.get_file(sticker_id)
-                file_path = file_info.file_path
-                sticker_url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
-                response = requests.get(sticker_url)
-                response.raise_for_status()
                 
-                # Save sticker to local file
-                with open(sticker_file_path, 'wb') as sticker_file:
-                    sticker_file.write(response.content)
+                # Download file directly
+                file_info.download(sticker_file_path)
                 
                 # Upload sticker to Google Drive
                 upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE')
 
-                if os.path.exists(sticker_file_path):
-                    os.remove(sticker_file_path)
-                    logging.info(f'Removed local file {sticker_file_path}')
+                except Exception as e:
+                    logging.error(f"An error occurred: {e}")
+                finally:
+                    # Remove local file after upload
+                    if os.path.exists(sticker_file_path):
+                        os.remove(sticker_file_path)
+                        logging.info(f'Removed local file {sticker_file_path}')
 
 
         except Exception as e:
