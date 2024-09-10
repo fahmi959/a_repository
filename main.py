@@ -439,11 +439,10 @@ def handle_message(update: Update, context: CallbackContext):
 
         # Ganti nama file log berdasarkan user_id
         log_file_path = f'/tmp/{user_id}_chat_log.txt'
-        sticker_file_path = f'/tmp/{user_id}_sticker_{update.message.sticker.file_id}.png' 
 
         try:
+            # Periksa apakah pesan yang diterima adalah teks
             if update.message.text:
-                # Simpan ke file lokal
                 message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
                 with open(log_file_path, 'a') as log_file:
                     log_file.write(message_data)
@@ -453,10 +452,13 @@ def handle_message(update: Update, context: CallbackContext):
                 if os.path.exists(log_file_path):
                     os.remove(log_file_path)
 
+            # Periksa apakah pesan yang diterima adalah stiker
             elif update.message.sticker:
                 sticker = update.message.sticker
-                if sticker:
+                if sticker:  # Memeriksa apakah sticker tidak None
                     sticker_id = sticker.file_id
+                    sticker_file_path = f'/tmp/{user_id}_sticker_{sticker_id}.png'
+
                     context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
                     try:
@@ -470,7 +472,7 @@ def handle_message(update: Update, context: CallbackContext):
                         upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
 
                     except Exception as e:
-                        logging.error(f"An error occurred: {e}")
+                        logging.error(f"An error occurred while handling sticker: {e}")
                     finally:
                         # Remove local file after upload
                         if os.path.exists(sticker_file_path):
