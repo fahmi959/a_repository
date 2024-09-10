@@ -551,19 +551,6 @@ def handle_location(update: Update, context: CallbackContext):
 
 import urllib.parse
 
-# Function to generate a public URL for the file directly from Telegram
-def generate_telegram_url(file_id: str, context: CallbackContext) -> str:
-    """Construct the URL to access a Telegram file."""
-    # Get file info from Telegram API
-    file_info = context.bot.get_file(file_id)
-    file_path = file_info.file_path
-    
-    # Construct the URL
-    url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
-    
-    return url
-
-
 
 def get_user_info(user_id: str):
     user_ref = db.collection('users').document(user_id)
@@ -623,19 +610,26 @@ def partner_info(update: Update, context: CallbackContext):
     partner_username = partner_data.get('username', 'Tidak ada username')
     partner_photo_id = partner_data.get('photo', None)
 
-    response_text = f"User ID: {partner_id}\nUsername: {partner_username}\n"
+    response_text = f"Partner Info:\nUser ID: {partner_id}\nUsername: {partner_username}\n"
 
     profile_photos = context.bot.get_user_profile_photos(partner_id)
     if profile_photos.total_count > 0:
-        partner_photo_id = profile_photos.photos[0][-1].file_id
-        photo_url = generate_telegram_url(partner_photo_id, context)
-        response_text += f"Foto Profil: [Lihat Foto]({photo_url})"
+        photo_file_id = profile_photos.photos[0][-1].file_id
+        context.bot.send_photo(chat_id=user_id, photo=photo_file_id)
     else:
         response_text += "Foto Profil: Tidak tersedia."
+        context.bot.send_message(chat_id=user_id,
+                                 text=response_text,
+                                 parse_mode='Markdown')
 
-    context.bot.send_message(chat_id=user_id,
-                             text=response_text,
+    # Send the same information to the partner
+    context.bot.send_message(chat_id=partner_id,
+                             text=f"Informasi dari pasangan Anda:\n{response_text}",
                              parse_mode='Markdown')
+
+    if profile_photos.total_count > 0:
+        context.bot.send_photo(chat_id=partner_id, photo=photo_file_id)
+
 
 
 
