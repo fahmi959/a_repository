@@ -186,50 +186,38 @@ def start(update: Update, context: CallbackContext):
 
 
 # Untuk Mengetahui Update Riwayat Rekam jejak User
+import hashlib
+
 def update_user_info(user_id: str, username: str, photo_url: str):
     # Referensi ke dokumen pengguna di koleksi utama
     user_doc_ref = db.collection('users').document(str(user_id))
     user_doc_ref.update({'username': username, 'photo': photo_url})
 
-    # Referensi ke dokumen riwayat pengguna
-    history_doc_ref = db.collection('user_history').document(str(user_id))
-
-    # Tambahkan entri riwayat baru dengan ID timestamp
-    timestamp = firestore.SERVER_TIMESTAMP
-    history_doc_ref.set({
+    # Referensi ke subkoleksi riwayat pengguna
+    history_ref = user_doc_ref.collection('history')
+    
+    # Tambahkan entri riwayat baru dengan timestamp
+    history_ref.add({
         'username': username,
         'photo': photo_url,
-        'timestamp': timestamp
-    }, merge=True)
+        'timestamp': firestore.SERVER_TIMESTAMP
+    })
 
-    # Hapus entri lama jika melebihi batas
-    entries_ref = db.collection('user_history').document(str(user_id))
-    entries = entries_ref.get()
+    # Batched write untuk menghapus entri lama jika melebihi batas
+    batch = db.batch()
+    entries = history_ref.order_by('timestamp').limit_to_last(6).get()
+    if len(entries) > 5:
+        for entry in entries[:-5]:
+            batch.delete(entry.reference)
+    batch.commit()
 
-    # Ambil semua dokumen dalam koleksi untuk membatasi jumlah entri
-    all_entries = entries_ref.collection('entries').order_by('timestamp').limit_to_last(6).get()
+def calculate_hash(file_path: str) -> str:
+    hasher = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        while chunk := f.read(8192):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
-    if len(all_entries) > 5:
-        # Hapus entri yang lebih lama
-        for entry in all_entries[:-5]:
-            entry.reference.delete()
-
-
-def get_next_increment(user_id: str) -> int:
-    try:
-        increment_ref = db.collection('user_increments').document(str(user_id))
-        increment_doc = increment_ref.get()
-        if increment_doc.exists:
-            current_increment = increment_doc.to_dict().get('current_increment', 0)
-        else:
-            current_increment = 0
-
-        # Update nomor increment di Firebase
-        increment_ref.set({'current_increment': current_increment + 1})
-        return current_increment + 1
-    except Exception as e:
-        print(f"Error in get_next_increment: {e}")
-        raise
 
 
 def get_last_photo_metadata(user_id: str) -> dict:
@@ -239,16 +227,19 @@ def get_last_photo_metadata(user_id: str) -> dict:
         return user_doc.to_dict().get('last_photo', {})
     return {}
 
-def update_last_photo_metadata(user_id: str, file_id: str, photo_url: str):
+def update_last_photo_metadata(user_id: str, file_id: str, photo_url: str, file_hash: str):
     user_ref = db.collection('users').document(str(user_id))
     user_ref.update({
         'last_photo': {
             'file_id': file_id,
-            'url': photo_url
+            'url': photo_url,
+            'hash': file_hash
         }
     })
 
+
 def handle_photo_update(user_id: str, context: CallbackContext):
+    temp_file_name = f'{user_id}_temp.jpg'
     try:
         profile_photos = context.bot.get_user_profile_photos(user_id)
         if profile_photos.total_count > 0:
@@ -258,33 +249,35 @@ def handle_photo_update(user_id: str, context: CallbackContext):
             
             # Ambil metadata foto terakhir
             last_photo_metadata = get_last_photo_metadata(user_id)
-            last_file_id = last_photo_metadata.get('file_id', None)
+            last_file_hash = last_photo_metadata.get('hash', None)
 
+            # Unduh foto baru untuk dihitung hash-nya
+            new_file.download(temp_file_name)
+            new_file_hash = calculate_hash(temp_file_name)
+            
             # Periksa apakah foto baru berbeda dari foto terakhir
-            if new_file_id == last_file_id:
+            if new_file_hash == last_file_hash:
                 print("Foto tidak berubah. Tidak ada pembaruan.")
                 return last_photo_metadata.get('url', None)
 
-            # Foto berbeda, unduh dan unggah
-            increment = get_next_increment(user_id)  # Periksa kesalahan di sini
+            # Foto berbeda, unggah foto baru
+            increment = last_photo_metadata.get("timestamp", 0) + 1
             file_name = f'{user_id}_{increment}.jpg'
-            
-            new_file.download(file_name)
-            print(f"Downloaded photo to {file_name}")
-
             blob = bucket.blob(f'profile_photos/{file_name}')
-            blob.upload_from_filename(file_name)
-            print(f"Uploaded photo to Firebase Storage at {blob.public_url}")
+            blob.upload_from_filename(temp_file_name)
             profile_photo_url = blob.public_url
 
             # Update metadata foto terakhir
-            update_last_photo_metadata(user_id, new_file_id, profile_photo_url)
+            update_last_photo_metadata(user_id, new_file_id, profile_photo_url, new_file_hash)
 
             return profile_photo_url
         return None
     except Exception as e:
         print(f"Error in handle_photo_update: {e}")
         raise
+    finally:
+        if os.path.exists(temp_file_name):
+            os.remove(temp_file_name)  # Hapus file sementara setelah diunggah atau jika terjadi kesalahan
 
 
 
