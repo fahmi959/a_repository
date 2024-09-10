@@ -452,28 +452,30 @@ def handle_message(update: Update, context: CallbackContext):
                 # Hapus file log lokal setelah diunggah
                 if os.path.exists(log_file_path):
                     os.remove(log_file_path)
-              
+
             elif update.message.sticker:
-                sticker_id = update.message.sticker.file_id
-                context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
+                sticker = update.message.sticker
+                if sticker:
+                    sticker_id = sticker.file_id
+                    context.bot.send_sticker(chat_id=partner_id, sticker=sticker_id)
 
-                try:
-                    # Get file info and download sticker
-                    file_info = context.bot.get_file(sticker_id)
-                
-                    # Download file directly
-                    file_info.download(sticker_file_path)
-                
-                    # Upload sticker to Google Drive
-                    upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
+                    try:
+                        # Get file info and download sticker
+                        file_info = context.bot.get_file(sticker_id)
+                    
+                        # Download file directly
+                        file_info.download(sticker_file_path)
+                    
+                        # Upload sticker to Google Drive
+                        upload_log_to_google_drive(sticker_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
 
-                except Exception as e:
-                    logging.error(f"An error occurred: {e}")
-                finally:
-                    # Remove local file after upload
-                    if os.path.exists(sticker_file_path):
-                        os.remove(sticker_file_path)
-                        logging.info(f'Removed local file {sticker_file_path}')
+                    except Exception as e:
+                        logging.error(f"An error occurred: {e}")
+                    finally:
+                        # Remove local file after upload
+                        if os.path.exists(sticker_file_path):
+                            os.remove(sticker_file_path)
+                            logging.info(f'Removed local file {sticker_file_path}')
 
 
         except Exception as e:
