@@ -444,7 +444,7 @@ def handle_message(update: Update, context: CallbackContext):
             
          
                 # Get file info and download sticker
-                file_info = context.bot.get_sticker_file(sticker_id)
+                file_info = context.bot.get_file(sticker_id)
                 file_path = file_info.file_path
                 sticker_url = f'https://api.telegram.org/file/bot{context.bot.token}/{file_path}'
                 response = requests.get(sticker_url)
