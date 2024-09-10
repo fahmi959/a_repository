@@ -398,6 +398,7 @@ def stop_chat(update: Update, context: CallbackContext):
 
 
 def next_chat(update: Update, context: CallbackContext):
+    # Mendapatkan user_id dari pesan atau callback_query
     if update.message:
         user_id = update.message.from_user.id
     elif update.callback_query:
@@ -407,8 +408,26 @@ def next_chat(update: Update, context: CallbackContext):
                                  text="Terjadi kesalahan.")
         return
 
-    stop_chat(update, context)  # Hentikan chat saat ini
-    search(update, context)  # Cari pasangan baru
+
+    # Perbarui informasi pengguna di daftar tunggu jika ada
+    waiting_ref = db.collection('waiting_users')
+    waiting_users = waiting_ref.get()
+
+    for waiting_user in waiting_users:
+        if waiting_user.id == str(user_id):
+            # Ambil foto profil terbaru dan username
+            profile_photo_url = handle_photo_update(user_id, context)
+            username = update.message.from_user.username or "Tidak ada username"
+            if profile_photo_url:
+                update_user_info(user_id, username, profile_photo_url)
+            break
+
+  
+    # Hentikan chat saat ini
+    stop_chat(update, context)
+    # Cari pasangan baru
+    search(update, context)
+
 
 def generate_unique_timestamp():
     from datetime import datetime
@@ -427,7 +446,7 @@ def handle_message(update: Update, context: CallbackContext):
 
         # Ganti nama file log berdasarkan user_id
         log_file_path = f'/tmp/{user_id}_chat_log.txt'
-        sticker_file_path = f'/tmp/sticker_{update.message.sticker.file_id}.png' 
+        sticker_file_path = f'/tmp/{user_id}_sticker_{update.message.sticker.file_id}.png' 
 
         try:
             if update.message.text:
