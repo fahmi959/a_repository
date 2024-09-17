@@ -188,7 +188,7 @@ def start(update: Update, context: CallbackContext):
 # Untuk Mengetahui Update Riwayat Rekam jejak User
 import hashlib
 
-def update_user_info(user_id: str, username: str, photo_url: str, partner_id: str):
+def update_user_info(user_id: str, username: str, photo_url: str):
     # Referensi ke dokumen pengguna di koleksi utama
     user_doc_ref = db.collection('users').document(str(user_id))
     user_doc_ref.update({'username': username, 'photo': photo_url})
@@ -209,29 +209,8 @@ def update_user_info(user_id: str, username: str, photo_url: str, partner_id: st
     if len(entries) > 5:
         for entry in entries[:-5]:
             batch.delete(entry.reference)
-
-    # Update informasi untuk partner_id
-    partner_doc_ref = db.collection('partners').document(str(partner_id))
-    partner_doc_ref.update({
-        'partner_username': username,  # Bisa diubah sesuai data yang ingin diupdate
-        'partner_photo': photo_url  # Sesuaikan sesuai kebutuhan
-    })
-
-    # Batched write untuk menghapus entri lama jika melebihi batas (jika dibutuhkan untuk partner)
-    partner_history_ref = partner_doc_ref.collection('history')
-    partner_history_ref.add({
-        'username': username,
-        'photo': photo_url,
-        'timestamp': firestore.SERVER_TIMESTAMP
-    })
-
-    partner_entries = partner_history_ref.order_by('timestamp').limit_to_last(6).get()
-    if len(partner_entries) > 5:
-        for entry in partner_entries[:-5]:
-            batch.delete(entry.reference)
-
-    # Commit batch operation untuk semua perubahan
     batch.commit()
+
 
 def calculate_hash(file_path: str) -> str:
     hasher = hashlib.sha256()
@@ -379,7 +358,6 @@ def search(update: Update, context: CallbackContext):
         db.collection('waiting_users').document(str(user_id)).set({})
         context.bot.send_message(chat_id=user_id,
                                  text="Menunggu pasangan. Mohon tunggu...")
-        update_user_info(user_id, username, profile_photo_url, partner_id)
 
 
 # Fungsi untuk menghentikan chat
