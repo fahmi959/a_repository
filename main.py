@@ -379,6 +379,7 @@ def search(update: Update, context: CallbackContext):
         db.collection('waiting_users').document(str(user_id)).set({})
         context.bot.send_message(chat_id=user_id,
                                  text="Menunggu pasangan. Mohon tunggu...")
+        update_user_info(user_id, username, profile_photo_url)
 
 
 # Fungsi untuk menghentikan chat
