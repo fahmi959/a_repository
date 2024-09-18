@@ -768,51 +768,33 @@ def banned_user(update: Update, context: CallbackContext):
         return
 
     if len(context.args) != 0:
-        # Assuming the partner_id is provided as an argument
-        partner_id = context.args[0]
+        # Assuming the user_id to ban is provided as an argument
+        target_user_id = context.args[0]
 
-        # Get the active chat for the user
-        chat_ref = db.collection('active_chats').document(str(user_id))
-        chat_doc = chat_ref.get()
+        # Check if the target user exists in the users collection
+        user_ref = db.collection('users').document(target_user_id)
+        user_doc = user_ref.get()
 
-        if not chat_doc.exists:
+        if not user_doc.exists():
             context.bot.send_message(chat_id=user_id,
-                                     text="You are not in an active chat.")
+                                     text="The user ID does not exist.")
             return
 
-        chat_data = chat_doc.to_dict()
-        if chat_data.get('partner') != partner_id:
-            context.bot.send_message(
-                chat_id=user_id,
-                text="The partner ID you provided is not correct.")
-            return
+        # Move the target user to the banned_users collection
+        banned_user_ref = db.collection('banned_users').document(target_user_id)
+        banned_user_ref.set(user_doc.to_dict())
 
-        # Check if the partner exists
-        partner_ref = db.collection('users').document(partner_id)
-        partner_doc = partner_ref.get()
+        # Delete the user from users collection
+        user_ref.delete()
 
-        if not partner_doc.exists:
-            context.bot.send_message(chat_id=user_id,
-                                     text="The partner ID does not exist.")
-            return
-
-        # Move partner to banned_users collection
-        banned_user_ref = db.collection('banned_users').document(partner_id)
-        banned_user_ref.set(partner_doc.to_dict())
-
-        # Delete partner from users collection
-        partner_ref.delete()
-
-        # Remove partner from the active chat
-        db.collection('active_chats').document(str(user_id)).delete()
-        db.collection('active_chats').document(partner_id).delete()
+        # Optionally remove the user from any other relevant collections, e.g., active_chats
+        db.collection('active_chats').document(target_user_id).delete()
 
         context.bot.send_message(chat_id=user_id,
-                                 text=f"Partner {partner_id} has been banned.")
-
+                                 text=f"User {target_user_id} has been banned.")
     else:
         context.bot.send_message(chat_id=user_id,
-                                 text="Please provide the partner ID to ban.")
+                                 text="Please provide a user ID to ban.")
 
 
 def unbanned_user(update: Update, context: CallbackContext):
