@@ -773,28 +773,46 @@ def banned_user(update: Update, context: CallbackContext):
 
         # Check if the target user exists in the users collection
         user_ref = db.collection('users').document(target_user_id)
-        user_doc = user_ref.get()
+        user_doc = user_rdef banned_user(update: Update, context: CallbackContext):
+    # List of admin IDs
+    admin_ids = [2082265412, 6069719700]
 
-        if not user_doc.exists():
+    user_id = update.message.from_user.id
+
+    # Check if the user is an admin
+    if user_id not in admin_ids:
+        context.bot.send_message(
+            chat_id=user_id,
+            text="You are not authorized to use this command.")
+        return
+
+    if len(context.args) != 0:
+        # Assuming the target user_id is provided as an argument
+        target_id = context.args[0]
+
+        # Check if the target user exists
+        target_ref = db.collection('users').document(target_id)
+        target_doc = target_ref.get()
+
+        if not target_doc.exists:
             context.bot.send_message(chat_id=user_id,
                                      text="The user ID does not exist.")
             return
 
         # Move the target user to the banned_users collection
-        banned_user_ref = db.collection('banned_users').document(target_user_id)
-        banned_user_ref.set(user_doc.to_dict())
+        banned_user_ref = db.collection('banned_users').document(target_id)
+        banned_user_ref.set(target_doc.to_dict())
 
-        # Delete the user from users collection
-        user_ref.delete()
+        # Delete the target user from users collection
+        target_ref.delete()
 
-        # Optionally remove the user from any other relevant collections, e.g., active_chats
-        db.collection('active_chats').document(target_user_id).delete()
+        # Remove the target user from any active chat if exists
+        db.collection('active_chats').document(target_id).delete()
 
         context.bot.send_message(chat_id=user_id,
-                                 text=f"User {target_user_id} has been banned.")
+                                 text=f"User {target_id} has been banned.")
     else:
-        context.bot.send_message(chat_id=user_id,
-                                 text="Please provide a user ID to ban.")
+        context.bot.send_message(chat_id=user_id, text="Please provide a user ID to ban.")
 
 
 def unbanned_user(update: Update, context: CallbackContext):
