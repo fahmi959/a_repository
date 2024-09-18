@@ -734,7 +734,7 @@ def broadcast(update: Update, context: CallbackContext):
 
 
 def list_banned(update: Update, context: CallbackContext):
-    user_id = update.message89.from_user.id
+    user_id = update.message.from_user.id
 
     # Retrieve the list of banned users
     banned_users_ref = db.collection('banned_users')
