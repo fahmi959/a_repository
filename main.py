@@ -754,10 +754,8 @@ def list_banned(update: Update, context: CallbackContext):
                              text=f"Banned Users:\n{banned_list_text}")
 
 
-.bot.send_message(
-            chat_id=user_id,
-            text="You are not authorized to use this command.")
-        return
+    context.bot.send_message(chat_id=user_id,
+                             text="You are not authorized to use this command.")
 
     if len(context.args) != 0:
         # Assuming the target user_id is provided as an argument
