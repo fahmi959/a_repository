@@ -503,11 +503,42 @@ def handle_message(update: Update, context: CallbackContext):
 
 
 def handle_photo(update: Update, context: CallbackContext):
-    photo = update.message.photo[-1]  # Ambil foto dengan resolusi tertinggi
-    file = context.bot.get_file(photo.file_id)
-    file.download('photo.jpg')  # Simpan foto
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Foto diterima!")
+    user_id = update.message.from_user.id
+    chat_ref = db.collection('active_chats').document(str(user_id))
+    chat = chat_ref.get()
+
+    if chat.exists:
+        partner_id = chat.to_dict().get('partner')
+        photo = update.message.photo[-1]  # Ambil foto dengan resolusi tertinggi
+        file_id = photo.file_id
+        photo_file_path = f'/tmp/{user_id}_photo_{file_id}.jpg'
+        timestamp = datetime.now().isoformat()
+
+        try:
+            # Dapatkan info file dan download foto
+            file_info = context.bot.get_file(file_id)
+            file_info.download(photo_file_path)
+
+            # Kirim foto ke partner_id
+            context.bot.send_photo(chat_id=partner_id, photo=open(photo_file_path, 'rb'))
+
+            # Upload foto ke Google Drive
+            upload_log_to_google_drive(photo_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
+
+            # Log pengiriman foto
+            log_file_path = get_log_file_path(user_id)
+            message_data = f"{timestamp} - {user_id} to {partner_id}: Sent a photo.\n"
+            with open(log_file_path, 'a') as log_file:
+                log_file.write(message_data)
+
+        except Exception as e:
+            logging.error(f"An error occurred while handling photo: {e}")
+
+        finally:
+            # Hapus file lokal setelah diupload
+            if os.path.exists(photo_file_path):
+                os.remove(photo_file_path)
+                logging.info(f'Removed local file {photo_file_path}')
 
 
 def handle_voice_note(update: Update, context: CallbackContext):
