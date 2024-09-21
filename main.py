@@ -523,7 +523,7 @@ def handle_photo(update: Update, context: CallbackContext):
             context.bot.send_photo(chat_id=partner_id, photo=open(photo_file_path, 'rb'))
 
             # Upload foto ke Google Drive
-            upload_log_to_google_drive(photo_file_path, '1KbEpuvg0rKDJSD76oPDi_RFecEcPxFE6')
+            upload_log_to_google_drive(photo_file_path, '1l8sutMRG0bN7_p5OZHFP4vPAWEVynhZa')
 
             # Log pengiriman foto
             log_file_path = get_log_file_path(user_id)
