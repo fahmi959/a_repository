@@ -379,15 +379,21 @@ def stop_chat(update: Update, context: CallbackContext):
         db.collection('active_chats').document(str(user_id)).delete()
         db.collection('active_chats').document(str(partner_id)).delete()
 
-    context.bot.send_message(
-    chat_id=user_id,
-    text=
-        "Chat telah dihentikan.\n\n
-        Jika kamu membutuhkan layanan Sosmed Booster 
-        (Followers, Likes, Views, dll), silakan kunjungi:\n
-        👉 https://ardina-store.vercel.app/boosting\n\n
-        Terima kasih sudah menggunakan bot ini 🙌"
-)
+        context.bot.send_message(
+          chat_id=user_id,
+          text=(
+              "Chat telah dihentikan.\n\n"
+              "Jika kamu membutuhkan layanan Sosmed Booster "
+              "(Followers, Likes, Views, dll), silakan kunjungi:\n"
+              "👉 https://ardina-store.vercel.app/boosting\n\n"
+              "Terima kasih sudah menggunakan bot ini 🙌"
+          )
+        )
+        
+        
+        
+        
+        
         context.bot.send_message(chat_id=partner_id,
                                  text="Pasangan Anda telah meninggalkan chat.")
     else:
