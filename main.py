@@ -752,7 +752,7 @@ def broadcast(update: Update, context: CallbackContext):
     # URL gambar profil bot atau gambar yang ingin dikirim
     # Gunakan URL gambar atau ID file gambar yang diupload
    # bot_profile_photo_url = 'https://upload.wikimedia.org/wikipedia/id/6/6a/Prof_Martono_UNNES.png'  # Ganti dengan URL gambar yang sesuai
-  bot_profile_photo_url = 'https://cdn.ayojakarta.com/crop/original/medias/2025/08/16/1755334693280-image_50746625JPG-1949755970.jpg'  # Ganti dengan URL gambar yang sesuai
+    bot_profile_photo_url = 'https://cdn.ayojakarta.com/crop/original/medias/2025/08/16/1755334693280-image_50746625JPG-1949755970.jpg'  # Ganti dengan URL gambar yang sesuai
 
     # Get all user IDs from Firestore
     users_ref = db.collection('users')
