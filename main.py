@@ -349,7 +349,10 @@ def search(update: Update, context: CallbackContext):
         db.collection('active_chats').document(str(partner_id)).set(
             {'partner': user_id})
 
-   
+
+
+
+
         context.bot.send_message(
             chat_id=user_id,
             text=(
@@ -358,9 +361,9 @@ def search(update: Update, context: CallbackContext):
                 "Kunjungi:\n"
                 "👉 https://ardina-store.vercel.app/premium"
             )
-          )
+        )
 
-         context.bot.send_message(
+        context.bot.send_message(
             chat_id=partner_id,
             text=(
                 "Pasangan ditemukan! Mulailah mengobrol.\n\n"
@@ -368,7 +371,9 @@ def search(update: Update, context: CallbackContext):
                 "Kunjungi:\n"
                 "👉 https://ardina-store.vercel.app/premium"
             )
-          )
+        )
+   
+        
    
     else:
         # Tambahkan pengguna ke daftar tunggu
