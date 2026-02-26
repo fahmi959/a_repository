@@ -379,11 +379,16 @@ def stop_chat(update: Update, context: CallbackContext):
         db.collection('active_chats').document(str(user_id)).delete()
         db.collection('active_chats').document(str(partner_id)).delete()
 
-        context.bot.send_message(
-            chat_id=user_id,
-            text=
-            "Chat telah dihentikan. Mohon donasinya kakak 1000 rupiah juga berarti bagi kami di saweria.co/Unnesbot agar server kami tetap berjalan dengan baik."
-        )
+    context.bot.send_message(
+    chat_id=user_id,
+    text=(
+        "Chat telah dihentikan.\n\n"
+        "Jika kamu membutuhkan layanan Sosmed Booster "
+        "(Followers, Likes, Views, dll), silakan kunjungi:\n"
+        "👉 https://ardina-store.vercel.app/boosting\n\n"
+        "Terima kasih sudah menggunakan bot ini 🙌"
+    )
+)
         context.bot.send_message(chat_id=partner_id,
                                  text="Pasangan Anda telah meninggalkan chat.")
     else:
@@ -742,6 +747,7 @@ def broadcast(update: Update, context: CallbackContext):
     # URL gambar profil bot atau gambar yang ingin dikirim
     # Gunakan URL gambar atau ID file gambar yang diupload
     bot_profile_photo_url = 'https://upload.wikimedia.org/wikipedia/id/6/6a/Prof_Martono_UNNES.png'  # Ganti dengan URL gambar yang sesuai
+  bot_profile_photo_url = 'https://cdn.ayojakarta.com/crop/original/medias/2025/08/16/1755334693280-image_50746625JPG-1949755970.jpg'  # Ganti dengan URL gambar yang sesuai
 
     # Get all user IDs from Firestore
     users_ref = db.collection('users')
