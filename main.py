@@ -14,7 +14,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import logging
 
@@ -490,6 +490,7 @@ def handle_message(update: Update, context: CallbackContext):
         try:
             # Periksa apakah pesan yang diterima adalah teks
             if update.message.text:
+                mark_user_online_text(user_id)  # ✅ hanya text yang dihitung online
                 message_data = f"{timestamp} - {user_id} to {partner_id}: {update.message.text}\n"
                 with open(log_file_path, 'a') as log_file:
                     log_file.write(message_data)
@@ -1025,6 +1026,32 @@ def button(update: Update, context: CallbackContext):
     query.answer()  # Acknowledge the callback query
 
 
+ONLINE_TIMEOUT_MINUTES = 10
+online_users = {}  # {user_id: datetime_utc_last_text_message}
+
+def mark_user_online_text(user_id: int):
+    # hanya dipanggil saat user kirim TEXT
+    online_users[user_id] = datetime.utcnow()
+
+def count_online_users() -> int:
+    now = datetime.utcnow()
+    timeout = timedelta(minutes=ONLINE_TIMEOUT_MINUTES)
+
+    # hapus yang expired
+    for uid, last_active in list(online_users.items()):
+        if now - last_active > timeout:
+            del online_users[uid]
+
+    return len(online_users)
+
+def online(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+
+    total = count_online_users()
+    context.bot.send_message(
+        chat_id=user_id,
+        text=f"👥 Online (aktif {ONLINE_TIMEOUT_MINUTES} menit terakhir via chat text): {total}"
+    )
 
 def main():
     updater = Updater(TOKEN, use_context=True)
@@ -1041,15 +1068,14 @@ def main():
     dp.add_handler(CommandHandler("banned_user", banned_user))
     dp.add_handler(CommandHandler("unbanned_user", unbanned_user))
     dp.add_handler(CommandHandler("list_banned", list_banned))
+    dp.add_handler(CommandHandler("online", online))
 
-
-   
+ 
     # Add handler for text messages that are not commands
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command & ~Filters.regex('^/lapor_admin'), handle_message))
     dp.add_handler(CommandHandler("lapor_admin", lapor_admin))
 
   
-
     # dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
     dp.add_handler(MessageHandler(Filters.sticker, handle_message))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
