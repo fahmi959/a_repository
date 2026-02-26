@@ -349,10 +349,27 @@ def search(update: Update, context: CallbackContext):
         db.collection('active_chats').document(str(partner_id)).set(
             {'partner': user_id})
 
+   
         context.bot.send_message(
-            chat_id=user_id, text="Pasangan ditemukan! Mulailah mengobrol.")
-        context.bot.send_message(
-            chat_id=partner_id, text="Pasangan ditemukan! Mulailah mengobrol.")
+            chat_id=user_id,
+            text=(
+              "Pasangan ditemukan! Mulailah mengobrol.\n\n"
+              "✨ Mau aplikasi premium hemat? (Canva Pro, Viu Premium, WeTV, Amazon Prime Video, dan lainnya)\n"
+              "Kunjungi:\n"
+              "👉 https://ardina-store.vercel.app/premium"
+              )
+            )
+
+         context.bot.send_message(
+            chat_id=partner_id,
+            text=(
+              "Pasangan ditemukan! Mulailah mengobrol.\n\n"
+              "✨ Mau aplikasi premium hemat? (Canva Pro, Viu Premium, WeTV, Amazon Prime Video, dan lainnya)\n"
+              "Kunjungi:\n"
+              "👉 https://ardina-store.vercel.app/premium"
+              )
+            )
+   
     else:
         # Tambahkan pengguna ke daftar tunggu
         db.collection('waiting_users').document(str(user_id)).set({})
